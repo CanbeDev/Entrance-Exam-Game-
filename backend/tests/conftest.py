@@ -8,9 +8,16 @@ from bson import ObjectId
 from app.services.country_catalog import CountryCatalog
 
 
+def pytest_addoption(parser):
+    parser.addoption("--disposable-mongodb", action="store_true", default=False,
+                     help="Explicitly run real transaction tests against a prompted disposable MongoDB target")
+
+
 @pytest.fixture(autouse=True)
-def no_external_connections(monkeypatch):
+def no_external_connections(monkeypatch, request):
     """Block external connections; Windows asyncio needs an internal loopback pipe."""
+    if request.node.get_closest_marker("disposable_mongo") and request.config.getoption("--disposable-mongodb"):
+        return
     original_connect = socket.socket.connect
 
     def guarded_connect(sock, address):
