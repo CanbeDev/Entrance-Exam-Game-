@@ -2,12 +2,15 @@ from fastapi import FastAPI, HTTPException
 from pymongo.errors import PyMongoError
 from app.database import client
 from app.repositories.game_repository import get_game
+from app.api.countries import router as countries_router
 
 
 app = FastAPI(
     title="Geopolitics Game API",
     description="UCT INF4001N Entrance Exam 2027"
 )
+
+app.include_router(countries_router)
 
 @app.get("/")
 def home():

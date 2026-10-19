@@ -1,0 +1,1184 @@
+{
+  "dataset_id": "worldometer-2026-2026-10-19",
+  "source_url": "https://www.worldometers.info/world-population/population-by-country/",
+  "population_year": 2026,
+  "retrieved_on": "2026-10-19",
+  "eligibility_source_url": "https://www.worldometers.info/geography/alphabetical-list-of-countries/",
+  "eligibility_policy": "Worldometer 195-country list; dependent territories and other entries excluded.",
+  "source_sha256": "97fc89a45fd4a8a1219ce56033acdb18b2edf4a110e2416ba4677288cc5237d4",
+  "eligibility_sha256": "3e804b6afa4316a03f4f3ce513a4a314aaf9ec8de8e369b209329bc1d4e7f15c",
+  "countries": [
+    {
+      "id": "afghanistan",
+      "name": "Afghanistan",
+      "population": 45047069
+    },
+    {
+      "id": "albania",
+      "name": "Albania",
+      "population": 2751025
+    },
+    {
+      "id": "algeria",
+      "name": "Algeria",
+      "population": 48028334
+    },
+    {
+      "id": "andorra",
+      "name": "Andorra",
+      "population": 83753
+    },
+    {
+      "id": "angola",
+      "name": "Angola",
+      "population": 40215179
+    },
+    {
+      "id": "antigua-and-barbuda",
+      "name": "Antigua and Barbuda",
+      "population": 94626
+    },
+    {
+      "id": "argentina",
+      "name": "Argentina",
+      "population": 46003734
+    },
+    {
+      "id": "armenia",
+      "name": "Armenia",
+      "population": 2930915
+    },
+    {
+      "id": "australia",
+      "name": "Australia",
+      "population": 27227096
+    },
+    {
+      "id": "austria",
+      "name": "Austria",
+      "population": 9107266
+    },
+    {
+      "id": "azerbaijan",
+      "name": "Azerbaijan",
+      "population": 10454855
+    },
+    {
+      "id": "bahamas",
+      "name": "Bahamas",
+      "population": 404628
+    },
+    {
+      "id": "bahrain",
+      "name": "Bahrain",
+      "population": 1675572
+    },
+    {
+      "id": "bangladesh",
+      "name": "Bangladesh",
+      "population": 177818044
+    },
+    {
+      "id": "barbados",
+      "name": "Barbados",
+      "population": 282724
+    },
+    {
+      "id": "belarus",
+      "name": "Belarus",
+      "population": 8937018
+    },
+    {
+      "id": "belgium",
+      "name": "Belgium",
+      "population": 11774642
+    },
+    {
+      "id": "belize",
+      "name": "Belize",
+      "population": 428644
+    },
+    {
+      "id": "benin",
+      "name": "Benin",
+      "population": 15170419
+    },
+    {
+      "id": "bhutan",
+      "name": "Bhutan",
+      "population": 802214
+    },
+    {
+      "id": "bolivia",
+      "name": "Bolivia",
+      "population": 12749291
+    },
+    {
+      "id": "bosnia-and-herzegovina",
+      "name": "Bosnia and Herzegovina",
+      "population": 3114242
+    },
+    {
+      "id": "botswana",
+      "name": "Botswana",
+      "population": 2603388
+    },
+    {
+      "id": "brazil",
+      "name": "Brazil",
+      "population": 213562666
+    },
+    {
+      "id": "brunei-darussalam",
+      "name": "Brunei",
+      "population": 469775
+    },
+    {
+      "id": "bulgaria",
+      "name": "Bulgaria",
+      "population": 6667659
+    },
+    {
+      "id": "burkina-faso",
+      "name": "Burkina Faso",
+      "population": 24601700
+    },
+    {
+      "id": "burundi",
+      "name": "Burundi",
+      "population": 14729157
+    },
+    {
+      "id": "cabo-verde",
+      "name": "Cabo Verde",
+      "population": 529630
+    },
+    {
+      "id": "cambodia",
+      "name": "Cambodia",
+      "population": 18051219
+    },
+    {
+      "id": "cameroon",
+      "name": "Cameroon",
+      "population": 30640817
+    },
+    {
+      "id": "canada",
+      "name": "Canada",
+      "population": 40467728
+    },
+    {
+      "id": "central-african-republic",
+      "name": "Central African Republic",
+      "population": 5698984
+    },
+    {
+      "id": "chad",
+      "name": "Chad",
+      "population": 21560380
+    },
+    {
+      "id": "chile",
+      "name": "Chile",
+      "population": 19945850
+    },
+    {
+      "id": "china",
+      "name": "China",
+      "population": 1412914089
+    },
+    {
+      "id": "colombia",
+      "name": "Colombia",
+      "population": 53936226
+    },
+    {
+      "id": "comoros",
+      "name": "Comoros",
+      "population": 899010
+    },
+    {
+      "id": "congo",
+      "name": "Congo",
+      "population": 6637785
+    },
+    {
+      "id": "costa-rica",
+      "name": "Costa Rica",
+      "population": 5174789
+    },
+    {
+      "id": "cote-d-ivoire",
+      "name": "Côte d'Ivoire",
+      "population": 33494346
+    },
+    {
+      "id": "croatia",
+      "name": "Croatia",
+      "population": 3822345
+    },
+    {
+      "id": "cuba",
+      "name": "Cuba",
+      "population": 10892659
+    },
+    {
+      "id": "cyprus",
+      "name": "Cyprus",
+      "population": 1382334
+    },
+    {
+      "id": "czechia",
+      "name": "Czech Republic (Czechia)",
+      "population": 10527781
+    },
+    {
+      "id": "democratic-republic-of-the-congo",
+      "name": "DR Congo",
+      "population": 116452162
+    },
+    {
+      "id": "denmark",
+      "name": "Denmark",
+      "population": 6023520
+    },
+    {
+      "id": "djibouti",
+      "name": "Djibouti",
+      "population": 1199459
+    },
+    {
+      "id": "dominica",
+      "name": "Dominica",
+      "population": 65511
+    },
+    {
+      "id": "dominican-republic",
+      "name": "Dominican Republic",
+      "population": 11609500
+    },
+    {
+      "id": "ecuador",
+      "name": "Ecuador",
+      "population": 18444506
+    },
+    {
+      "id": "egypt",
+      "name": "Egypt",
+      "population": 120101175
+    },
+    {
+      "id": "el-salvador",
+      "name": "El Salvador",
+      "population": 6391253
+    },
+    {
+      "id": "equatorial-guinea",
+      "name": "Equatorial Guinea",
+      "population": 1984468
+    },
+    {
+      "id": "eritrea",
+      "name": "Eritrea",
+      "population": 3682669
+    },
+    {
+      "id": "estonia",
+      "name": "Estonia",
+      "population": 1331062
+    },
+    {
+      "id": "ethiopia",
+      "name": "Ethiopia",
+      "population": 138902185
+    },
+    {
+      "id": "fiji",
+      "name": "Fiji",
+      "population": 937282
+    },
+    {
+      "id": "finland",
+      "name": "Finland",
+      "population": 5621739
+    },
+    {
+      "id": "france",
+      "name": "France",
+      "population": 66746401
+    },
+    {
+      "id": "gabon",
+      "name": "Gabon",
+      "population": 2647399
+    },
+    {
+      "id": "gambia",
+      "name": "Gambia",
+      "population": 2884079
+    },
+    {
+      "id": "georgia",
+      "name": "Georgia",
+      "population": 3804642
+    },
+    {
+      "id": "germany",
+      "name": "Germany",
+      "population": 83644258
+    },
+    {
+      "id": "ghana",
+      "name": "Ghana",
+      "population": 35697557
+    },
+    {
+      "id": "greece",
+      "name": "Greece",
+      "population": 9897115
+    },
+    {
+      "id": "grenada",
+      "name": "Grenada",
+      "population": 117362
+    },
+    {
+      "id": "guatemala",
+      "name": "Guatemala",
+      "population": 18967978
+    },
+    {
+      "id": "guinea",
+      "name": "Guinea",
+      "population": 15441993
+    },
+    {
+      "id": "guinea-bissau",
+      "name": "Guinea-Bissau",
+      "population": 2297808
+    },
+    {
+      "id": "guyana",
+      "name": "Guyana",
+      "population": 840890
+    },
+    {
+      "id": "haiti",
+      "name": "Haiti",
+      "population": 12037506
+    },
+    {
+      "id": "holy-see",
+      "name": "Holy See",
+      "population": 506
+    },
+    {
+      "id": "honduras",
+      "name": "Honduras",
+      "population": 11184760
+    },
+    {
+      "id": "hungary",
+      "name": "Hungary",
+      "population": 9585818
+    },
+    {
+      "id": "iceland",
+      "name": "Iceland",
+      "population": 402329
+    },
+    {
+      "id": "india",
+      "name": "India",
+      "population": 1476625576
+    },
+    {
+      "id": "indonesia",
+      "name": "Indonesia",
+      "population": 287886782
+    },
+    {
+      "id": "iran",
+      "name": "Iran",
+      "population": 93168497
+    },
+    {
+      "id": "iraq",
+      "name": "Iraq",
+      "population": 48007437
+    },
+    {
+      "id": "ireland",
+      "name": "Ireland",
+      "population": 5356950
+    },
+    {
+      "id": "israel",
+      "name": "Israel",
+      "population": 9647689
+    },
+    {
+      "id": "italy",
+      "name": "Italy",
+      "population": 58926166
+    },
+    {
+      "id": "jamaica",
+      "name": "Jamaica",
+      "population": 2833403
+    },
+    {
+      "id": "japan",
+      "name": "Japan",
+      "population": 122427731
+    },
+    {
+      "id": "jordan",
+      "name": "Jordan",
+      "population": 11589532
+    },
+    {
+      "id": "kazakhstan",
+      "name": "Kazakhstan",
+      "population": 21083626
+    },
+    {
+      "id": "kenya",
+      "name": "Kenya",
+      "population": 58636412
+    },
+    {
+      "id": "kiribati",
+      "name": "Kiribati",
+      "population": 138445
+    },
+    {
+      "id": "kuwait",
+      "name": "Kuwait",
+      "population": 5102773
+    },
+    {
+      "id": "kyrgyzstan",
+      "name": "Kyrgyzstan",
+      "population": 7400465
+    },
+    {
+      "id": "laos",
+      "name": "Laos",
+      "population": 7974017
+    },
+    {
+      "id": "latvia",
+      "name": "Latvia",
+      "population": 1835935
+    },
+    {
+      "id": "lebanon",
+      "name": "Lebanon",
+      "population": 5897467
+    },
+    {
+      "id": "lesotho",
+      "name": "Lesotho",
+      "population": 2389336
+    },
+    {
+      "id": "liberia",
+      "name": "Liberia",
+      "population": 5853949
+    },
+    {
+      "id": "libya",
+      "name": "Libya",
+      "population": 7539851
+    },
+    {
+      "id": "liechtenstein",
+      "name": "Liechtenstein",
+      "population": 40368
+    },
+    {
+      "id": "lithuania",
+      "name": "Lithuania",
+      "population": 2797338
+    },
+    {
+      "id": "luxembourg",
+      "name": "Luxembourg",
+      "population": 687448
+    },
+    {
+      "id": "madagascar",
+      "name": "Madagascar",
+      "population": 33522052
+    },
+    {
+      "id": "malawi",
+      "name": "Malawi",
+      "population": 22785535
+    },
+    {
+      "id": "malaysia",
+      "name": "Malaysia",
+      "population": 36385115
+    },
+    {
+      "id": "maldives",
+      "name": "Maldives",
+      "population": 531517
+    },
+    {
+      "id": "mali",
+      "name": "Mali",
+      "population": 25932275
+    },
+    {
+      "id": "malta",
+      "name": "Malta",
+      "population": 549011
+    },
+    {
+      "id": "marshall-islands",
+      "name": "Marshall Islands",
+      "population": 35075
+    },
+    {
+      "id": "mauritania",
+      "name": "Mauritania",
+      "population": 5461319
+    },
+    {
+      "id": "mauritius",
+      "name": "Mauritius",
+      "population": 1265059
+    },
+    {
+      "id": "mexico",
+      "name": "Mexico",
+      "population": 132997658
+    },
+    {
+      "id": "micronesia",
+      "name": "Micronesia",
+      "population": 114183
+    },
+    {
+      "id": "moldova",
+      "name": "Moldova",
+      "population": 2961253
+    },
+    {
+      "id": "monaco",
+      "name": "Monaco",
+      "population": 38087
+    },
+    {
+      "id": "mongolia",
+      "name": "Mongolia",
+      "population": 3556798
+    },
+    {
+      "id": "montenegro",
+      "name": "Montenegro",
+      "population": 626233
+    },
+    {
+      "id": "morocco",
+      "name": "Morocco",
+      "population": 38762441
+    },
+    {
+      "id": "mozambique",
+      "name": "Mozambique",
+      "population": 36639851
+    },
+    {
+      "id": "myanmar",
+      "name": "Myanmar",
+      "population": 55184819
+    },
+    {
+      "id": "namibia",
+      "name": "Namibia",
+      "population": 3153246
+    },
+    {
+      "id": "nauru",
+      "name": "Nauru",
+      "population": 12101
+    },
+    {
+      "id": "nepal",
+      "name": "Nepal",
+      "population": 29629410
+    },
+    {
+      "id": "netherlands",
+      "name": "Netherlands",
+      "population": 18448775
+    },
+    {
+      "id": "new-zealand",
+      "name": "New Zealand",
+      "population": 5287479
+    },
+    {
+      "id": "nicaragua",
+      "name": "Nicaragua",
+      "population": 7097329
+    },
+    {
+      "id": "niger",
+      "name": "Niger",
+      "population": 28814878
+    },
+    {
+      "id": "nigeria",
+      "name": "Nigeria",
+      "population": 242431832
+    },
+    {
+      "id": "north-korea",
+      "name": "North Korea",
+      "population": 26633691
+    },
+    {
+      "id": "north-macedonia",
+      "name": "North Macedonia",
+      "population": 1804063
+    },
+    {
+      "id": "norway",
+      "name": "Norway",
+      "population": 5652989
+    },
+    {
+      "id": "oman",
+      "name": "Oman",
+      "population": 5671458
+    },
+    {
+      "id": "pakistan",
+      "name": "Pakistan",
+      "population": 259299791
+    },
+    {
+      "id": "palau",
+      "name": "Palau",
+      "population": 17614
+    },
+    {
+      "id": "panama",
+      "name": "Panama",
+      "population": 4625718
+    },
+    {
+      "id": "papua-new-guinea",
+      "name": "Papua New Guinea",
+      "population": 10947848
+    },
+    {
+      "id": "paraguay",
+      "name": "Paraguay",
+      "population": 7095279
+    },
+    {
+      "id": "peru",
+      "name": "Peru",
+      "population": 34922148
+    },
+    {
+      "id": "philippines",
+      "name": "Philippines",
+      "population": 117724471
+    },
+    {
+      "id": "poland",
+      "name": "Poland",
+      "population": 37843188
+    },
+    {
+      "id": "portugal",
+      "name": "Portugal",
+      "population": 10395362
+    },
+    {
+      "id": "qatar",
+      "name": "Qatar",
+      "population": 3173559
+    },
+    {
+      "id": "romania",
+      "name": "Romania",
+      "population": 18800605
+    },
+    {
+      "id": "russia",
+      "name": "Russia",
+      "population": 143394458
+    },
+    {
+      "id": "rwanda",
+      "name": "Rwanda",
+      "population": 14889693
+    },
+    {
+      "id": "saint-kitts-and-nevis",
+      "name": "Saint Kitts & Nevis",
+      "population": 46992
+    },
+    {
+      "id": "saint-lucia",
+      "name": "Saint Lucia",
+      "population": 180488
+    },
+    {
+      "id": "saint-vincent-and-the-grenadines",
+      "name": "St. Vincent & Grenadines",
+      "population": 99245
+    },
+    {
+      "id": "samoa",
+      "name": "Samoa",
+      "population": 220528
+    },
+    {
+      "id": "san-marino",
+      "name": "San Marino",
+      "population": 33605
+    },
+    {
+      "id": "sao-tome-and-principe",
+      "name": "Sao Tome & Principe",
+      "population": 244994
+    },
+    {
+      "id": "saudi-arabia",
+      "name": "Saudi Arabia",
+      "population": 35165787
+    },
+    {
+      "id": "senegal",
+      "name": "Senegal",
+      "population": 19366548
+    },
+    {
+      "id": "serbia",
+      "name": "Serbia",
+      "population": 6641964
+    },
+    {
+      "id": "seychelles",
+      "name": "Seychelles",
+      "population": 134959
+    },
+    {
+      "id": "sierra-leone",
+      "name": "Sierra Leone",
+      "population": 8996745
+    },
+    {
+      "id": "singapore",
+      "name": "Singapore",
+      "population": 5905748
+    },
+    {
+      "id": "slovakia",
+      "name": "Slovakia",
+      "population": 5451342
+    },
+    {
+      "id": "slovenia",
+      "name": "Slovenia",
+      "population": 2114573
+    },
+    {
+      "id": "solomon-islands",
+      "name": "Solomon Islands",
+      "population": 858288
+    },
+    {
+      "id": "somalia",
+      "name": "Somalia",
+      "population": 20305907
+    },
+    {
+      "id": "south-africa",
+      "name": "South Africa",
+      "population": 65453084
+    },
+    {
+      "id": "south-korea",
+      "name": "South Korea",
+      "population": 51600388
+    },
+    {
+      "id": "south-sudan",
+      "name": "South Sudan",
+      "population": 12436037
+    },
+    {
+      "id": "spain",
+      "name": "Spain",
+      "population": 47850793
+    },
+    {
+      "id": "sri-lanka",
+      "name": "Sri Lanka",
+      "population": 23348315
+    },
+    {
+      "id": "state-of-palestine",
+      "name": "State of Palestine",
+      "population": 5692790
+    },
+    {
+      "id": "sudan",
+      "name": "Sudan",
+      "population": 53282719
+    },
+    {
+      "id": "suriname",
+      "name": "Suriname",
+      "population": 645256
+    },
+    {
+      "id": "swaziland",
+      "name": "Eswatini",
+      "population": 1269859
+    },
+    {
+      "id": "sweden",
+      "name": "Sweden",
+      "population": 10701047
+    },
+    {
+      "id": "switzerland",
+      "name": "Switzerland",
+      "population": 9007798
+    },
+    {
+      "id": "syria",
+      "name": "Syria",
+      "population": 26472497
+    },
+    {
+      "id": "tajikistan",
+      "name": "Tajikistan",
+      "population": 10978599
+    },
+    {
+      "id": "tanzania",
+      "name": "Tanzania",
+      "population": 72563780
+    },
+    {
+      "id": "thailand",
+      "name": "Thailand",
+      "population": 71559614
+    },
+    {
+      "id": "timor-leste",
+      "name": "Timor-Leste",
+      "population": 1436923
+    },
+    {
+      "id": "togo",
+      "name": "Togo",
+      "population": 9930918
+    },
+    {
+      "id": "tonga",
+      "name": "Tonga",
+      "population": 103291
+    },
+    {
+      "id": "trinidad-and-tobago",
+      "name": "Trinidad and Tobago",
+      "population": 1513268
+    },
+    {
+      "id": "tunisia",
+      "name": "Tunisia",
+      "population": 12415138
+    },
+    {
+      "id": "turkey",
+      "name": "Turkey",
+      "population": 87926082
+    },
+    {
+      "id": "turkmenistan",
+      "name": "Turkmenistan",
+      "population": 7736632
+    },
+    {
+      "id": "tuvalu",
+      "name": "Tuvalu",
+      "population": 9362
+    },
+    {
+      "id": "uganda",
+      "name": "Uganda",
+      "population": 52761469
+    },
+    {
+      "id": "uk",
+      "name": "United Kingdom",
+      "population": 69931528
+    },
+    {
+      "id": "ukraine",
+      "name": "Ukraine",
+      "population": 39535849
+    },
+    {
+      "id": "united-arab-emirates",
+      "name": "United Arab Emirates",
+      "population": 11574682
+    },
+    {
+      "id": "uruguay",
+      "name": "Uruguay",
+      "population": 3382537
+    },
+    {
+      "id": "us",
+      "name": "United States",
+      "population": 349035494
+    },
+    {
+      "id": "uzbekistan",
+      "name": "Uzbekistan",
+      "population": 37724223
+    },
+    {
+      "id": "vanuatu",
+      "name": "Vanuatu",
+      "population": 342564
+    },
+    {
+      "id": "venezuela",
+      "name": "Venezuela",
+      "population": 28633711
+    },
+    {
+      "id": "vietnam",
+      "name": "Vietnam",
+      "population": 102177431
+    },
+    {
+      "id": "yemen",
+      "name": "Yemen",
+      "population": 42961653
+    },
+    {
+      "id": "zambia",
+      "name": "Zambia",
+      "population": 22521915
+    },
+    {
+      "id": "zimbabwe",
+      "name": "Zimbabwe",
+      "population": 17273580
+    }
+  ],
+  "excluded_entries": [
+    {
+      "id": "american-samoa",
+      "name": "American Samoa",
+      "population": 45319
+    },
+    {
+      "id": "anguilla",
+      "name": "Anguilla",
+      "population": 14817
+    },
+    {
+      "id": "aruba",
+      "name": "Aruba",
+      "population": 108164
+    },
+    {
+      "id": "bermuda",
+      "name": "Bermuda",
+      "population": 64459
+    },
+    {
+      "id": "british-virgin-islands",
+      "name": "British Virgin Islands",
+      "population": 39936
+    },
+    {
+      "id": "caribbean-netherlands",
+      "name": "Caribbean Netherlands",
+      "population": 31913
+    },
+    {
+      "id": "cayman-islands",
+      "name": "Cayman Islands",
+      "population": 77196
+    },
+    {
+      "id": "china-hong-kong-sar",
+      "name": "Hong Kong",
+      "population": 7378602
+    },
+    {
+      "id": "china-macao-sar",
+      "name": "Macao",
+      "population": 723188
+    },
+    {
+      "id": "cook-islands",
+      "name": "Cook Islands",
+      "population": 12826
+    },
+    {
+      "id": "curacao",
+      "name": "Curaçao",
+      "population": 185440
+    },
+    {
+      "id": "faeroe-islands",
+      "name": "Faeroe Islands",
+      "population": 56526
+    },
+    {
+      "id": "falkland-islands-malvinas",
+      "name": "Falkland Islands",
+      "population": 3465
+    },
+    {
+      "id": "french-guiana",
+      "name": "French Guiana",
+      "population": 318872
+    },
+    {
+      "id": "french-polynesia",
+      "name": "French Polynesia",
+      "population": 283076
+    },
+    {
+      "id": "gibraltar",
+      "name": "Gibraltar",
+      "population": 40867
+    },
+    {
+      "id": "greenland",
+      "name": "Greenland",
+      "population": 55629
+    },
+    {
+      "id": "guadeloupe",
+      "name": "Guadeloupe",
+      "population": 372453
+    },
+    {
+      "id": "guam",
+      "name": "Guam",
+      "population": 170185
+    },
+    {
+      "id": "isle-of-man",
+      "name": "Isle of Man",
+      "population": 84055
+    },
+    {
+      "id": "martinique",
+      "name": "Martinique",
+      "population": 337711
+    },
+    {
+      "id": "mayotte",
+      "name": "Mayotte",
+      "population": 347536
+    },
+    {
+      "id": "montserrat",
+      "name": "Montserrat",
+      "population": 4328
+    },
+    {
+      "id": "new-caledonia",
+      "name": "New Caledonia",
+      "population": 297892
+    },
+    {
+      "id": "niue",
+      "name": "Niue",
+      "population": 1822
+    },
+    {
+      "id": "northern-mariana-islands",
+      "name": "Northern Mariana Islands",
+      "population": 42914
+    },
+    {
+      "id": "puerto-rico",
+      "name": "Puerto Rico",
+      "population": 3222688
+    },
+    {
+      "id": "reunion",
+      "name": "Réunion",
+      "population": 886298
+    },
+    {
+      "id": "saint-barthelemy",
+      "name": "Saint Barthelemy",
+      "population": 11550
+    },
+    {
+      "id": "saint-helena",
+      "name": "Saint Helena",
+      "population": 5147
+    },
+    {
+      "id": "saint-martin",
+      "name": "Saint Martin",
+      "population": 23898
+    },
+    {
+      "id": "saint-pierre-and-miquelon",
+      "name": "Saint Pierre & Miquelon",
+      "population": 5513
+    },
+    {
+      "id": "sint-maarten",
+      "name": "Sint Maarten",
+      "population": 44447
+    },
+    {
+      "id": "taiwan",
+      "name": "Taiwan",
+      "population": 23011292
+    },
+    {
+      "id": "tokelau",
+      "name": "Tokelau",
+      "population": 2691
+    },
+    {
+      "id": "turks-and-caicos-islands",
+      "name": "Turks and Caicos",
+      "population": 47148
+    },
+    {
+      "id": "united-states-virgin-islands",
+      "name": "U.S. Virgin Islands",
+      "population": 83400
+    },
+    {
+      "id": "wallis-and-futuna-islands",
+      "name": "Wallis & Futuna",
+      "population": 11113
+    },
+    {
+      "id": "western-sahara",
+      "name": "Western Sahara",
+      "population": 610813
+    }
+  ]
+}
