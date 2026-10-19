@@ -4,6 +4,7 @@ from pydantic import Field
 
 from app.models.actions import Allocation, FrozenModel
 from app.models.runtime_game import RuntimeGame
+from app.models.npc import NpcDecision
 
 
 class GameEvent(FrozenModel):
@@ -26,3 +27,5 @@ class GameEvent(FrozenModel):
 class ActionResult(FrozenModel):
     state: RuntimeGame
     events: tuple[GameEvent, ...] = Field(min_length=1)
+    # Missing on historical receipts; no change to the saved RuntimeGame schema.
+    npc_decision: NpcDecision | None = None

@@ -1,5 +1,7 @@
 """Real MongoDB proof; skipped unless explicitly requested. Never loads .env."""
 import getpass
+import hashlib
+import json
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
@@ -11,11 +13,13 @@ from pymongo.errors import PyMongoError
 from app.engine.errors import PersistenceUnavailable, RevisionConflict
 from app.engine.game_setup import initialize_game
 from app.engine.state_adapter import load_runtime
-from app.models.actions import ActionCommand, Skip
+from app.models.actions import ActionCommand, Roll, Skip, StartAttack
 from app.models.game import GameSetupRequest
-from app.repositories.action_repository import MongoActionRepository
-from app.services.game_action_service import GameActionService
-from phase2_helpers import context
+from app.repositories.action_repository import MongoActionRepository, runtime_document
+from app.services.game_action_service import GameActionService, command_fingerprint
+from app.services.npc_service import NpcController
+from npc_helpers import npc_state
+from phase2_helpers import FixedDice, NOW, context, make_runtime, step
 
 pytestmark = pytest.mark.disposable_mongo
 
@@ -132,3 +136,136 @@ def test_real_competing_submissions(real_repository, monkeypatch, same_action_id
     else:
         assert sum(result is not None for result in results) == 1
     assert original_load(game_id)["revision"] == 1
+
+
+@pytest.fixture
+def real_npc_battle(disposable_database, catalog):
+    """Labelled state, seeded ONLY in the existing generated disposable database.
+
+    Select the battle locally without dice; the real transaction under test must
+    persist the exchange's actual casualties and decision evidence together.
+    """
+    client, database = disposable_database
+    state = npc_state(catalog, source_soldiers=3, changes={0: {"soldiers": 2}})
+    state = step(state, StartAttack(source_id=state.countries[1].id,
+                                  target_id=state.countries[0].id)).state
+    game_id = str(database["games"].insert_one(runtime_document(state)).inserted_id)
+    repository = MongoActionRepository(client, database, gameplay_writes_enabled=True)
+    return client, database, repository, game_id, state
+
+
+def _unexpected_replay_work(*args, **kwargs):
+    pytest.fail("Duplicate replay must not rerun strategy, dice, or the clock", pytrace=False)
+
+
+def test_real_npc_commit_replay_and_fresh_service(real_npc_battle, monkeypatch):
+    from app.engine.npc.strategy import NpcStrategy
+
+    client, database, repository, game_id, state = real_npc_battle
+    dice = FixedDice([1, 4, 2, 3])
+    service = GameActionService(repository, dice, lambda: NOW)
+    controller = NpcController(repository, service)
+    submission = controller.prepare(game_id)
+    assert isinstance(submission.command.action, Roll) and dice.calls == 0
+    before = repository.load_game(game_id)
+    result = controller.submit(submission)
+
+    # Index-paired dice produce one casualty on each side: source 3->2, target 2->1.
+    assert dice.calls == 4
+    assert result.state.country(state.battle.source_id).soldiers == 2
+    assert result.state.country(state.battle.target_id).soldiers == 1
+    assert result.state.revision == state.revision + 1
+    assert result.npc_decision == submission.decision
+    exchange = result.events[0]
+    assert exchange.type == "dice_exchange"
+    assert exchange.attacker_dice == (1, 4) and exchange.defender_dice == (2, 3)
+    assert exchange.attacker_losses == exchange.defender_losses == 1
+    stored_game = repository.load_game(game_id)
+    assert stored_game != before and load_runtime(stored_game) == result.state
+    assert "npc_decision" not in stored_game
+    key = {"_id": repository.receipt_id(game_id, submission.command.action_id)}
+    stored_receipt = database["game_action_receipts"].find_one(key)
+    assert stored_receipt["result"]["npc_decision"] == submission.decision.model_dump(mode="json")
+    assert stored_receipt["result"]["events"] == [event.model_dump(mode="json") for event in result.events]
+    assert stored_receipt["result"]["state"] == result.state.model_dump(mode="json")
+    assert database["game_action_receipts"].count_documents({"game_id": game_id}) == 1
+
+    # These guards also catch evidence validation accidentally recomputing policy.
+    monkeypatch.setattr(NpcStrategy, "decide", _unexpected_replay_work)
+    monkeypatch.setattr(dice, "roll", _unexpected_replay_work)
+    monkeypatch.setattr(service, "_clock", _unexpected_replay_work)
+    assert controller.submit(submission) == result
+    fresh_repository = MongoActionRepository(client, database, gameplay_writes_enabled=True)
+    fresh_dice = FixedDice()
+    monkeypatch.setattr(fresh_dice, "roll", _unexpected_replay_work)
+    fresh_service = GameActionService(fresh_repository, fresh_dice, _unexpected_replay_work)
+    fresh_controller = NpcController(fresh_repository, fresh_service)
+    assert fresh_controller.submit(submission) == result
+    assert fresh_repository.find_receipt(game_id, submission.command.action_id).result == result
+    assert repository.load_game(game_id) == stored_game
+    assert database["game_action_receipts"].find_one(key) == stored_receipt
+    assert database["game_action_receipts"].count_documents({"game_id": game_id}) == 1
+
+
+def test_real_npc_rollback_after_observed_game_update(real_npc_battle, monkeypatch):
+    _, database, repository, game_id, state = real_npc_battle
+    dice = FixedDice([1, 4, 2, 3])
+    controller = NpcController(repository, GameActionService(repository, dice, lambda: NOW))
+    submission = controller.prepare(game_id)
+    before = repository.load_game(game_id)
+    before_receipts = list(database["game_action_receipts"].find({"game_id": game_id}))
+    observed_updates = []
+
+    def reject_after_observed_update(document, *, session):
+        assert session.in_transaction
+        staged = database["games"].find_one({"_id": ObjectId(game_id)}, session=session)
+        assert staged["revision"] == state.revision + 1
+        staged_state = load_runtime(staged)
+        assert staged_state.country(state.battle.source_id).soldiers == 2
+        assert staged_state.country(state.battle.target_id).soldiers == 1
+        assert document["result"]["npc_decision"] == submission.decision.model_dump(mode="json")
+        assert document["result"]["events"][0]["attacker_losses"] == 1
+        observed_updates.append(staged["revision"])
+        raise PyMongoError("Deliberate disposable NPC rollback test after observed update")
+
+    monkeypatch.setattr(repository._receipts, "insert_one", reject_after_observed_update)
+    with pytest.raises(PersistenceUnavailable):
+        controller.submit(submission)
+    assert observed_updates and dice.calls == 4
+    assert repository.load_game(game_id) == before
+    assert repository.find_receipt(game_id, submission.command.action_id) is None
+    assert list(database["game_action_receipts"].find({"game_id": game_id})) == before_receipts
+
+
+@pytest.mark.parametrize("actor_kind", ["human", "npc"], ids=["historical-human", "historical-npc"])
+def test_real_historical_receipt_and_fingerprint(disposable_database, catalog, actor_kind):
+    client, database = disposable_database
+    state = make_runtime(catalog) if actor_kind == "human" else npc_state(catalog)
+    actor = context(state)
+    assert actor.kind == actor_kind
+    game_id = str(database["games"].insert_one(runtime_document(state)).inserted_id)
+    repository = MongoActionRepository(client, database, gameplay_writes_enabled=True)
+    command = ActionCommand(action_id=f"historical-{actor_kind}", expected_revision=state.revision, action=Skip())
+    # Independent pre-Phase-3 algorithm: no optional evidence key, including null.
+    old_payload = {"actor": actor.model_dump(mode="json"), "command": command.model_dump(mode="json")}
+    old_fingerprint = hashlib.sha256(json.dumps(old_payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    assert command_fingerprint(actor, command) == command_fingerprint(actor, command, None) == old_fingerprint
+    result = GameActionService(repository, FixedDice(), lambda: NOW).execute(game_id, actor, command)
+    assert result.npc_decision is None
+    key = {"_id": repository.receipt_id(game_id, command.action_id)}
+    assert database["game_action_receipts"].find_one(key)["fingerprint"] == old_fingerprint
+
+    # Deliberate fixture-only edit recreates the old on-disk format in THIS test DB.
+    unset = database["game_action_receipts"].update_one(key, {"$unset": {"result.npc_decision": ""}})
+    assert unset.matched_count == 1
+    historical_receipt = database["game_action_receipts"].find_one(key)
+    stored_game = repository.load_game(game_id)
+    assert "npc_decision" not in historical_receipt["result"]
+    fresh_repository = MongoActionRepository(client, database, gameplay_writes_enabled=True)
+    replay_dice = FixedDice()
+    # Empty dice would also fail if replay attempted any random exchange.
+    replay = GameActionService(fresh_repository, replay_dice, _unexpected_replay_work).execute(game_id, actor, command)
+    assert replay == result and replay.npc_decision is None and replay_dice.calls == 0
+    assert repository.load_game(game_id) == stored_game
+    assert database["game_action_receipts"].find_one(key) == historical_receipt
+    assert database["game_action_receipts"].count_documents({"game_id": game_id}) == 1

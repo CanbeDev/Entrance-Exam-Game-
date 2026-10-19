@@ -9,6 +9,7 @@ from app.engine.errors import ActionIdConflict, GameRuleError, RevisionConflict
 from app.engine.state_adapter import load_runtime
 from app.models.actions import ActionCommand, ActorContext, FrozenModel
 from app.models.events import ActionResult
+from app.models.npc import NpcDecision
 
 
 class ActionReceipt(FrozenModel):
@@ -19,8 +20,11 @@ class ActionReceipt(FrozenModel):
     result: ActionResult
 
 
-def command_fingerprint(actor: ActorContext, command: ActionCommand) -> str:
+def command_fingerprint(actor: ActorContext, command: ActionCommand,
+                        npc_decision: NpcDecision | None = None) -> str:
     content = {"actor": actor.model_dump(mode="json"), "command": command.model_dump(mode="json")}
+    if npc_decision is not None:
+        content["npc_decision_v1"] = npc_decision.model_dump(mode="json")
     return hashlib.sha256(json.dumps(content, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -44,11 +48,16 @@ class GameActionService:
         self._dice = dice if dice is not None else RandomDice()
         self._clock = clock if clock is not None else lambda: datetime.now(timezone.utc)
 
-    def execute(self, game_id: str, actor: ActorContext, command: ActionCommand) -> ActionResult:
+    def execute(self, game_id: str, actor: ActorContext, command: ActionCommand,
+                *, npc_decision: NpcDecision | None = None) -> ActionResult:
         # Revalidate even model_copy/model_construct callers before using their data.
         actor = ActorContext.model_validate(actor.model_dump())
         command = ActionCommand.model_validate(command.model_dump())
-        fingerprint = command_fingerprint(actor, command)
+        if npc_decision is not None:
+            npc_decision = NpcDecision.model_validate(npc_decision.model_dump())
+            if actor.kind != "npc":
+                raise GameRuleError("Human commands cannot carry NPC decision evidence")
+        fingerprint = command_fingerprint(actor, command, npc_decision)
         receipt = self._repository.find_receipt(game_id, command.action_id)
         if receipt is not None:
             return replay_receipt(receipt, fingerprint)
@@ -62,7 +71,12 @@ class GameActionService:
             if receipt is not None:
                 return replay_receipt(receipt, fingerprint)
             raise RevisionConflict("Game revision changed; reload before submitting a new action")
+        if npc_decision is not None:
+            from app.engine.npc.explanations import validate_decision
+            validate_decision(state, actor, command.action, npc_decision)
         result = apply_action(state, actor, command.action, self._dice, self._clock())
+        if npc_decision is not None:
+            result = ActionResult(state=result.state, events=result.events, npc_decision=npc_decision)
         receipt = ActionReceipt(game_id=game_id, fingerprint=fingerprint, actor=actor,
                                 command=command, result=result)
         return self._repository.commit(receipt)

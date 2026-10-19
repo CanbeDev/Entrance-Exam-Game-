@@ -9,7 +9,8 @@ invent an exam rule or silently substitute another year's brief.
 
 Before implementing/modifying gameplay, read relevant sections of BOTH official
 documents; identify mandatory rules and rubric criteria; distinguish them from
-approved conventions in backend/docs/phase1-rules.md and phase2-rules.md. Ask
+approved conventions in backend/docs/phase1-rules.md, phase2-rules.md and
+phase3-npc-rules.md. Ask
 about unresolved ambiguity. Do not omit mandatory requirements for convenience.
 Maintain backend/docs/REQUIREMENTS.md with implementation/test/demo evidence and
 report unmet mandatory requirements and rubric gaps in implementation reports.
@@ -17,8 +18,10 @@ report unmet mandatory requirements and rubric gaps in implementation reports.
 Preserve existing functionality and regression tests. Keep engine logic independent
 of FastAPI/MongoDB. Invalid actions must not mutate input/stored state. No public
 gameplay write routes before explicitly approved access control. Human actor IDs
-are not authenticated accounts. Phase 2 excludes NPC strategy, authentication,
-frontend and AI commentary; these remain mandatory future project work.
+are not authenticated accounts. Phase 3 adds shared explainable NPC strategy;
+authentication, frontend, visible fast-forward and AI commentary remain mandatory
+future project work. NPC tie-breaking must never control battle dice. Preserve
+human fingerprints and historical receipts when extending decision evidence.
 
 Never display/log/commit passwords or connection strings. Do not change credentials,
 environment variables or deployment configuration, or commit/push/deploy, without
