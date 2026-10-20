@@ -1,8 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from pymongo.errors import PyMongoError
+from pydantic import ValidationError
 from app.database import client
 from app.repositories.game_repository import get_game
 from app.api.countries import router as countries_router
+from app.services.public_game_service import public_game
+from app.api.auth import router as auth_router
+from app.api.games import router as games_router
+from app.api.dependencies import Phase4SecurityMiddleware, install_security_handlers
 
 
 app = FastAPI(
@@ -11,6 +16,11 @@ app = FastAPI(
 )
 
 app.include_router(countries_router)
+app.state.phase4 = None  # Explicitly injected locally; production writes stay disabled.
+app.add_middleware(Phase4SecurityMiddleware)
+install_security_handlers(app)
+app.include_router(auth_router)
+app.include_router(games_router)
 
 @app.get("/")
 def home():
@@ -46,7 +56,7 @@ def read_game(game_id: str):
                 detail="Game not found"
             )
 
-        return game
+        return public_game(game)
 
     except HTTPException:
         raise
@@ -56,3 +66,9 @@ def read_game(game_id: str):
             status_code=503,
             detail="Database temporarily unavailable"
         )
+
+    except (ValidationError, ValueError, TypeError):
+        raise HTTPException(
+            status_code=503,
+            detail="Saved game temporarily unavailable"
+        ) from None

@@ -44,7 +44,14 @@ class MongoActionRepository:
         # ObjectId has a fixed 24-character representation; command IDs forbid ':'.
         return f"{game_id}:{action_id}"
 
+    def _authorize_access(self, game_id: str, *, session=None) -> None:
+        """Trusted local repository has no account boundary; scoped adapters override."""
+
+    def _scope_update(self, query: dict) -> dict:
+        return query
+
     def find_receipt(self, game_id: str, action_id: str) -> ActionReceipt | None:
+        self._authorize_access(game_id)
         object_id = self.object_id(game_id)
         if object_id is None:
             return None
@@ -57,6 +64,7 @@ class MongoActionRepository:
             raise PersistenceUnavailable("Unable to read action receipt") from None
 
     def load_game(self, game_id: str) -> dict | None:
+        self._authorize_access(game_id)
         object_id = self.object_id(game_id)
         if object_id is None:
             return None
@@ -66,6 +74,7 @@ class MongoActionRepository:
             raise PersistenceUnavailable("Unable to read game") from None
 
     def commit(self, receipt: ActionReceipt) -> ActionResult:
+        self._authorize_access(receipt.game_id)
         if not self._enabled:
             raise GameplayWritesDisabled("Verify transactions on a disposable database before enabling writes")
         object_id = self.object_id(receipt.game_id)
@@ -83,6 +92,7 @@ class MongoActionRepository:
 
         def commit_once(session):
             # This callback may run more than once. Do not generate randomness here.
+            self._authorize_access(receipt.game_id, session=session)
             saved = self._receipts.find_one({"_id": key}, session=session)
             if saved is not None:
                 parsed = ActionReceipt.model_validate({k: v for k, v in saved.items() if k != "_id"})
@@ -92,7 +102,7 @@ class MongoActionRepository:
                 query["$or"] = [{"revision": 0}, {"revision": {"$exists": False}, "schema_version": 2}]
             else:
                 query["revision"] = expected
-            update = self._games.update_one(query, {"$set": state_document}, session=session)
+            update = self._games.update_one(self._scope_update(query), {"$set": state_document}, session=session)
             if update.matched_count != 1:
                 raise RevisionConflict("Game revision changed; action was not committed")
             self._receipts.insert_one(receipt_document, session=session)

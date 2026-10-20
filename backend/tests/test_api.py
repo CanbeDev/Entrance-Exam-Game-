@@ -36,8 +36,13 @@ def test_country_listing_and_no_creation_route(api):
     assert data["population_snapshot"]["population_year"] == 2026
     south_africa = next(c for c in data["countries"] if c["id"] == "south-africa")
     assert south_africa["base_soldier_value"] == 5
-    assert client.post("/games", json={"game_name": "Blocked", "starting_country_id": "india"}).status_code in (404, 405)
-    assert not any("POST" in (getattr(route, "methods", set()) or set()) for route in module.app.routes)
+    # Phase 4 adds explicitly authorized routes, with production dependencies
+    # absent and write gates closed. Anonymous calls cannot create any game.
+    assert client.post("/games", json={"game_name": "Blocked", "starting_country_id": "india"}).status_code == 503
+    approved_posts = {"/auth/register", "/auth/login", "/auth/logout", "/games",
+                      "/games/{game_id}/actions", "/games/{game_id}/npc-steps"}
+    assert {path for path, operations in module.app.openapi()["paths"].items()
+            if "post" in operations} == approved_posts
 
 
 def test_existing_endpoints_and_legacy_read(api):

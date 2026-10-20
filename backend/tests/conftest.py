@@ -11,6 +11,8 @@ from app.services.country_catalog import CountryCatalog
 def pytest_addoption(parser):
     parser.addoption("--disposable-mongodb", action="store_true", default=False,
                      help="Explicitly run real transaction tests against a prompted disposable MongoDB target")
+    parser.addoption("--disposable-mongodb-hosts", action="append", default=None,
+                     help="Required exact dedicated test DNS hostname(s), comma-separated; never read from environment")
 
 
 @pytest.fixture(autouse=True)

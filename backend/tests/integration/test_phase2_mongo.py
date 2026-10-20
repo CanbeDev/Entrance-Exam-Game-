@@ -18,6 +18,7 @@ from app.models.game import GameSetupRequest
 from app.repositories.action_repository import MongoActionRepository, runtime_document
 from app.services.game_action_service import GameActionService, command_fingerprint
 from app.services.npc_service import NpcController
+from integration.mongo_safety import parse_test_cluster_hosts, validate_disposable_uri
 from npc_helpers import npc_state
 from phase2_helpers import FixedDice, NOW, context, make_runtime, step
 
@@ -38,32 +39,35 @@ def generate_disposable_database_name():
 def disposable_database(request):
     if not request.config.getoption("--disposable-mongodb"):
         pytest.skip("Real MongoDB verification requires --disposable-mongodb and a dedicated disposable target")
+    configured_hosts = request.config.getoption("--disposable-mongodb-hosts")
+    if not configured_hosts or len(configured_hosts) != 1:
+        pytest.fail("Specify --disposable-mongodb-hosts exactly once with the dedicated test hostnames", pytrace=False)
+    try:
+        allowed_hosts = parse_test_cluster_hosts(configured_hosts[0])
+    except ValueError as error:
+        pytest.fail(str(error), pytrace=False)
     print("Use a local replica set or separate NON-PRODUCTION Atlas project. No production URI.")
     if input("Type DISPOSABLE to authorize creation and cleanup of a fresh test database: ") != "DISPOSABLE":
         pytest.fail("Disposable database authorization was not provided", pytrace=False)
     uri = getpass.getpass("Dedicated test MongoDB URI (hidden; never read from .env): ")
+    try:
+        validate_disposable_uri(uri, allowed_hosts)
+    except ValueError as error:
+        pytest.fail(str(error), pytrace=False)
     client = None
     database = None
     database_name = generate_disposable_database_name()
     try:
-        client = MongoClient(uri, serverSelectionTimeoutMS=5000)
-        hello = client.admin.command("hello")
-        if not hello.get("logicalSessionTimeoutMinutes") or not (hello.get("setName") or hello.get("msg") == "isdbgrid"):
-            pytest.fail("Transactions require sessions and a replica set or sharded topology", pytrace=False)
-        database = client[database_name]
-        database.create_collection("games")
-        database.create_collection("game_action_receipts")
-    except PyMongoError as error:
-        if client is not None:
-            if database is not None and database.name == database_name and database_name.startswith(DISPOSABLE_DATABASE_PREFIX):
-                try:
-                    client.drop_database(database_name)
-                except PyMongoError as cleanup_error:
-                    print(f"Test setup cleanup failed for disposable database '{database_name}' "
-                          f"({type(cleanup_error).__name__}); inspect only that database on the dedicated test target.")
-            client.close()
-        pytest.fail(f"Disposable target unavailable ({type(error).__name__}); no fallback", pytrace=False)
-    try:
+        try:
+            client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            hello = client.admin.command("hello")
+            if not hello.get("logicalSessionTimeoutMinutes") or not (hello.get("setName") or hello.get("msg") == "isdbgrid"):
+                pytest.fail("Transactions require sessions and a replica set or sharded topology", pytrace=False)
+            database = client[database_name]
+            database.create_collection("games")
+            database.create_collection("game_action_receipts")
+        except PyMongoError as error:
+            pytest.fail(f"Disposable target unavailable ({type(error).__name__}); no fallback", pytrace=False)
         yield client, database
     finally:
         # Never drop a configured/default database or a caller-provided database name.
@@ -76,7 +80,8 @@ def disposable_database(request):
                                 f"({type(cleanup_error).__name__}); remove only that database on the dedicated test target manually",
                                 pytrace=False)
         finally:
-            client.close()
+            if client is not None:
+                client.close()
 
 
 @pytest.fixture
