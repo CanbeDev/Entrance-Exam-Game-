@@ -4,7 +4,7 @@ from urllib.parse import urlsplit
 
 @dataclass(frozen=True)
 class SecuritySettings:
-    # Explicit dependency injection only: existing credentials/Render env unchanged.
+    # Explicit composition; validated environment loading is separate.
     auth_writes_enabled: bool = False
     gameplay_writes_enabled: bool = False
     trusted_origins: tuple[str, ...] = ()
@@ -28,11 +28,17 @@ class SecuritySettings:
             raise ValueError("Idle timeout exceeds absolute lifetime")
         if self.cookie_name != "__Host-geopolitics_session":
             raise ValueError("The secure cookie contract cannot be relaxed")
+        if (not isinstance(self.trusted_origins, tuple) or
+                any(not isinstance(origin, str) for origin in self.trusted_origins) or
+                len(set(self.trusted_origins)) != len(self.trusted_origins)):
+            raise ValueError("Trusted origins must be distinct exact origins")
         for origin in self.trusted_origins:
             parsed = urlsplit(origin)
             # Accessing port validates malformed/out-of-range numeric ports.
             parsed.port
-            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+            if ("*" in origin or "\\" in origin or origin.endswith(":")
+                    or any(char.isspace() or ord(char) < 32 for char in origin)
+                    or parsed.scheme not in {"http", "https"} or not parsed.hostname
                     or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment
                     or origin != f"{parsed.scheme}://{parsed.netloc}"):
                 raise ValueError("Trusted origins must be exact origins")

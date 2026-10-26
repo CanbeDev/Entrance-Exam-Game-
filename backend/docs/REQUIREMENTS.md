@@ -32,6 +32,17 @@ playable interface and navigation for 9-10 remain. Account/ownership tests suppo
 commentary. Code, tests and the final demonstration provide evidence for 14.
 These are evidence links, not predicted marks.
 
+Local database structure evidence: version-aware validators, exact metadata
+verification, disposable provisioning safeguards and isolated historical/failure
+tests are documented in [MongoDB provisioning](mongo-provisioning.md). Expanded
+service/phase/NPC/rollback integration cases and a separately guarded Atlas TEST
+harness passed 23 real TEST cases, including rollback; cleanup/evidence limits are
+recorded in [Atlas TEST verification](atlas-test-verification.md). Local
+[startup wiring](phase4-startup.md) composes services with validated settings and
+closed default gates; isolated lifecycle/configuration tests support G18 and
+database criteria 1-3. Live startup/Render/browser verification and production
+prerequisites remain; these results do not activate production writes.
+
 The remaining work is the frontend, visible battles and fast-forward, LLM
 commentary, protected production activation and submission package. The optional
 bonus feature does not replace any mandatory requirement. Passing backend tests

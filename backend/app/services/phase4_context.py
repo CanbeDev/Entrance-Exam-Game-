@@ -13,7 +13,7 @@ class Phase4Context:
 
 
 def build_phase4_context(client, database, settings: SecuritySettings, *, clock=None, dice=None):
-    """Explicit trusted composition only. Never called by production app startup.
+    """Compose injected services after managed startup readiness checks.
 
     The caller supplies an already authorized database dependency. Constructors do
     not provision collections/indexes; gates stay disabled unless explicitly set.

@@ -77,6 +77,8 @@ class Phase4SecurityMiddleware:
             context = getattr(scope["app"].state, "phase4", None)
             if context is None:
                 return await error_response(SecurityError(503, "phase4_disabled"))(scope, receive, no_store)
+            if not context.settings.auth_writes_enabled:
+                return await error_response(SecurityError(503, "authentication_disabled"))(scope, receive, no_store)
             origins = [value.decode("latin-1") for key, value in scope.get("headers", []) if key.lower() == b"origin"]
             if len(origins) != 1 or origins[0] not in context.settings.trusted_origins:
                 return await error_response(SecurityError(403, "origin_rejected"))(scope, receive, no_store)

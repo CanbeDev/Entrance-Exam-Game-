@@ -11,6 +11,8 @@ from fastapi.testclient import TestClient
 
 from app.models.auth import Credentials
 from app.security.config import SecuritySettings
+from app.security.environment import ApplicationSettings
+from startup_helpers import StartupClient
 from app.services.auth_service import AuthService
 from app.services.authorized_game_service import AuthorizedGameService
 from app.services.phase4_context import Phase4Context
@@ -45,9 +47,12 @@ def secured_api(monkeypatch, collection, catalog):
     auth = AuthService(store, settings, lambda: NOW, passwords=FastPasswords())
     games = AuthorizedGameService(store, settings, lambda: NOW, catalog=catalog,
                                   dice=FixedDice([6, 6, 6, 1, 1, 1] * 10), setup_rng=random.Random(2))
-    module.app.state.phase4 = Phase4Context(settings, auth, games)
-    monkeypatch.setattr(module, "get_game", lambda game_id: copy.deepcopy(store.games.get(game_id)))
+    injected = StartupClient()
+    module.app = module.create_app(settings_loader=lambda: ApplicationSettings("mongodb://localhost", "test"),
+                                   client_factory=lambda settings: injected)
     with TestClient(module.app, base_url=ORIGIN) as client:
+        module.app.state.phase4 = Phase4Context(settings, auth, games)
+        module.app.state.game_reader = lambda game_id: copy.deepcopy(store.games.get(game_id))
         yield client, module, store, auth, games
     sys.modules.pop("app.main", None)
     if previous is not None:

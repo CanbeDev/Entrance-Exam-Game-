@@ -146,14 +146,18 @@ or unavailable. Existing reads keep their contracts; `/docs` shows request schem
 ## Deployment requirements
 
 Authentication/gameplay settings and repository write gates default false.
-`app.state.phase4` is `None`; normal startup supplies no protected context and no
-environment switch activates it. Production credentials and Render settings remain
-unchanged. Index provisioning and protected activation require separate approval.
+The import-safe application factory now installs a Phase 4 context during lifespan
+after validated configuration and read-only database checks; shutdown clears it
+and closes the owned client. Explicit activation requires ready metadata/topology
+and separate approval. Production credentials and Render settings remain unchanged.
+Startup never provisions storage. See [startup/configuration](phase4-startup.md)
+and [real TEST evidence](atlas-test-verification.md).
 
 Prefer same-origin HTTPS for the future frontend. Keep CSRF in memory and session
 credentials out of localStorage. Local browser work needs trusted HTTPS/proxy;
 loopback HTTP test tooling does not prove browser cookie behaviour. Separate
-origins require reviewed CORS/cookie settings; wildcard credentialed CORS is absent.
+origins use exact trusted-origin CORS; arbitrary cross-site cookies still require
+review. Wildcard credentialed CORS is absent.
 Review Render proxy trust, Linux build, transaction permissions, index checks and
 Argon2 resource use before activation. Password recovery, email verification, MFA
 and account administration are not implemented.

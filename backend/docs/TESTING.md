@@ -1,6 +1,33 @@
 # Testing the backend
 
-The recorded isolated run passed **593 tests: zero failed, 20 skipped**. Another
+The latest 2026-10-26 isolated regression run passed **757 tests, 0 failures/errors,
+44 skipped, 1 existing Starlette/HTTPX warning in 13.78s; exit code 0**. The project
+interpreter ran
+`-B -m pytest -c pytest.ini tests -q` with a unique validated Windows temporary
+`--basetemp` and `-p no:cacheprovider`. All 44 real cases skipped; no live database
+connections were made during this isolated run.
+
+The separate authorized Atlas TEST validator integration run passed **23 tests,
+0 failures/errors/skips, exit 0 in 101.80s**. Fixture cleanup completed without
+teardown errors; see [recorded evidence and limits](atlas-test-verification.md).
+
+The separately authorized Atlas TEST read-only [Phase 4 startup](phase4-startup.md)
+smoke passed **1 test, 0 failures/errors/skips, 2 deprecation warnings in 347.96s;
+exit code 0**. Startup/shutdown passed, both write gates stayed disabled and
+`/`, `/health`, `/countries` and `/openapi.json` returned 200. Readiness reported
+`indexes_not_ready`; no database was created or provisioned. The elapsed time
+includes interactive confirmation/hidden credential input and is not a measured
+startup latency. This verifies TEST lifespan wiring, not deployment of the new
+code to Render, production readiness or browser session behavior.
+
+The 2026-10-25 validator/provisioning improvement isolated run passed **689 tests:
+zero failed, 43 skipped, one existing Starlette/HTTPX warning**, in **16.79s**.
+It used the project interpreter, `-B -m pytest -c pytest.ini tests -q`, a fresh
+validated temporary `--basetemp` and `-p no:cacheprovider`. All real MongoDB
+tests were skipped (23 validator cases and 20 earlier transaction cases); no
+MongoDB connection or integration execution occurred. The previous local
+validator implementation run was 620 passed, 25 skipped in 24.95s.
+The earlier recorded isolated run passed **593 tests: zero failed, 20 skipped**. Another
 **20 real MongoDB tests passed in separate runs**: 12 account/ownership cases and
 eight engine/NPC cases, using a dedicated non-production Atlas cluster. These are
 the previously verified results, not a new run during this documentation edit.
@@ -52,10 +79,17 @@ Run from `backend`:
 ```
 
 These show setup, battle/transfer, NPC turns, in-memory accounts/games and the
-eight-index plan. The index tool only prints. Do not add `--persist` to setup;
+eight-index/validator plan. The index tool defaults to offline output; see
+[local provisioning](mongo-provisioning.md) for explicitly gated local modes.
+Do not add `--persist` to setup;
 that writes to the application's configured database.
 
 ## Real MongoDB tests
+
+The validator-enabled service/rollback suite has separate local and pinned Atlas
+TEST opt-ins. Its prerequisites, guarded command and cleanup checks are in
+[MongoDB provisioning](mongo-provisioning.md). The commands below are the earlier
+transaction suites; those fixtures do not install validators.
 
 These tests write, provision indexes and drop a generated database. Run only with
 explicit approval for the dedicated test cluster, test-only credentials and

@@ -27,6 +27,21 @@ def provision_phase4_indexes(database) -> dict[str, list[str]]:
     return {name: database[name].create_indexes(list(indexes)) for name, indexes in phase4_indexes().items()}
 
 
+def index_matches(found: dict, required: dict) -> bool:
+    """Compare manifest semantics, ignoring only server bookkeeping/default false."""
+    if list(found.get("key", ())) != list(required["key"].items()):
+        return False
+    for option in ("unique", "sparse", "hidden"):
+        if bool(found.get(option, False)) != bool(required.get(option, False)):
+            return False
+    for option in ("expireAfterSeconds", "partialFilterExpression", "collation"):
+        if found.get(option) != required.get(option):
+            return False
+    supported = {"key", "name", "v", "ns", "background", "unique", "sparse", "hidden",
+                 "expireAfterSeconds", "partialFilterExpression", "collation"}
+    return not set(found) - supported
+
+
 def verify_required_indexes(database) -> None:
     """Read existing metadata only; never create collections/indexes or repair them.
 
@@ -40,12 +55,7 @@ def verify_required_indexes(database) -> None:
             for model in indexes:
                 required = model.document
                 found = actual.get(required["name"], {})
-                if list(found.get("key", ())) != list(required["key"].items()):
+                if not index_matches(found, required):
                     raise SecurityError(503, "security_indexes_not_ready")
-                if bool(found.get("unique", False)) != bool(required.get("unique", False)):
-                    raise SecurityError(503, "security_indexes_not_ready")
-                for option in ("expireAfterSeconds", "partialFilterExpression"):
-                    if found.get(option) != required.get(option):
-                        raise SecurityError(503, "security_indexes_not_ready")
     except PyMongoError:
         raise SecurityError(503, "security_index_verification_unavailable") from None

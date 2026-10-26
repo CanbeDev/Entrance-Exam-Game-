@@ -9,6 +9,12 @@ from app.services.country_catalog import CountryCatalog
 
 
 def pytest_addoption(parser):
+    parser.addoption("--atlas-startup-smoke", action="store_true", default=False,
+                     help="Separately opt into read-only closed-gate FastAPI startup on Atlas TEST")
+    parser.addoption("--atlas-validator-mongodb", action="store_true", default=False,
+                     help="Separately authorize validator integration on the pinned dedicated Atlas TEST cluster")
+    parser.addoption("--local-provisioning-mongodb", action="store_true", default=False,
+                     help="Explicitly authorize provisioning tests on loopback MongoDB with generated disposable databases")
     parser.addoption("--disposable-mongodb", action="store_true", default=False,
                      help="Explicitly run real transaction tests against a prompted disposable MongoDB target")
     parser.addoption("--disposable-mongodb-hosts", action="append", default=None,

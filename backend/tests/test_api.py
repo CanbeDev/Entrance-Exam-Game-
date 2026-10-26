@@ -7,11 +7,13 @@ from fastapi.testclient import TestClient
 from pymongo.errors import PyMongoError
 
 from app.repositories.game_repository import MongoGameRepository
+from app.security.environment import ApplicationSettings
+from startup_helpers import StartupClient
 
 
 @pytest.fixture
 def api(monkeypatch, collection):
-    # Substitute the database module before main imports it: no dotenv/Atlas import.
+    # Explicit factory dependencies: importing main does not load dotenv/Atlas.
     fake_database = ModuleType("app.database")
     fake_database.client = SimpleNamespace(admin=SimpleNamespace(command=lambda command: {"ok": 1}))
     fake_database.db = {"games": collection}
@@ -19,7 +21,11 @@ def api(monkeypatch, collection):
     previous = sys.modules.pop("app.main", None)
     module = importlib.import_module("app.main")
     repository = MongoGameRepository(collection)
-    monkeypatch.setattr(module, "get_game", repository.get_game)
+    injected = StartupClient()
+    injected.database.collections["games"] = collection
+    fake_database.client = injected
+    module.app = module.create_app(settings_loader=lambda: ApplicationSettings("mongodb://localhost", "test"),
+                                   client_factory=lambda settings: injected)
     with TestClient(module.app) as client:
         yield client, module, fake_database, repository
     sys.modules.pop("app.main", None)
@@ -60,7 +66,7 @@ def test_database_errors_still_return_503(api, monkeypatch):
     def fail(*args):
         raise PyMongoError("Simulated outage")
     monkeypatch.setattr(database.client.admin, "command", fail)
-    monkeypatch.setattr(module, "get_game", fail)
+    monkeypatch.setattr(module.app.state, "game_reader", fail)
     assert client.get("/health").status_code == 503
     assert client.get("/games/" + "0" * 24).status_code == 503
 
