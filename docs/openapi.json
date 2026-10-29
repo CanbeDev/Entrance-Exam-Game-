@@ -1,0 +1,2118 @@
+{
+  "components": {
+    "schemas": {
+      "ActionCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "discriminator": {
+              "mapping": {
+                "allocate": "#/components/schemas/Allocate",
+                "end_turn": "#/components/schemas/EndTurn",
+                "roll": "#/components/schemas/Roll",
+                "skip": "#/components/schemas/Skip",
+                "start_attack": "#/components/schemas/StartAttack",
+                "stop_attack": "#/components/schemas/StopAttack",
+                "transfer": "#/components/schemas/Transfer"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Allocate"
+              },
+              {
+                "$ref": "#/components/schemas/Transfer"
+              },
+              {
+                "$ref": "#/components/schemas/StartAttack"
+              },
+              {
+                "$ref": "#/components/schemas/Roll"
+              },
+              {
+                "$ref": "#/components/schemas/StopAttack"
+              },
+              {
+                "$ref": "#/components/schemas/Skip"
+              },
+              {
+                "$ref": "#/components/schemas/EndTurn"
+              }
+            ],
+            "title": "Action"
+          },
+          "action_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Action Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action_id",
+          "expected_revision",
+          "action"
+        ],
+        "title": "ActionCommand",
+        "type": "object"
+      },
+      "Allocate": {
+        "additionalProperties": false,
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/Allocation"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Allocations",
+            "type": "array"
+          },
+          "type": {
+            "const": "allocate",
+            "default": "allocate",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocations"
+        ],
+        "title": "Allocate",
+        "type": "object"
+      },
+      "Allocation": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount",
+            "type": "integer"
+          },
+          "country_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Country Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "country_id",
+          "amount"
+        ],
+        "title": "Allocation",
+        "type": "object"
+      },
+      "Credentials": {
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "maxLength": 32,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_]+$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Credentials",
+        "type": "object"
+      },
+      "EndTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "end_turn",
+            "default": "end_turn",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "EndTurn",
+        "type": "object"
+      },
+      "GameSetupRequest": {
+        "additionalProperties": false,
+        "description": "Service input only; never accepts client-provided ownership or soldiers.",
+        "properties": {
+          "game_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Game Name",
+            "type": "string"
+          },
+          "starting_country_id": {
+            "minLength": 1,
+            "title": "Starting Country Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "game_name",
+          "starting_country_id"
+        ],
+        "title": "GameSetupRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "NpcStepRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "NpcStepRequest",
+        "type": "object"
+      },
+      "PublicActionResult": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PublicGameEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "npc_decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicNpcDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/PublicGame"
+          }
+        },
+        "required": [
+          "state",
+          "events"
+        ],
+        "title": "PublicActionResult",
+        "type": "object"
+      },
+      "PublicActor": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "human",
+              "npc"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "kind"
+        ],
+        "title": "PublicActor",
+        "type": "object"
+      },
+      "PublicAllocate": {
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/PublicAllocation"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "type": {
+            "const": "allocate",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "allocations"
+        ],
+        "title": "PublicAllocate",
+        "type": "object"
+      },
+      "PublicAllocation": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "integer"
+          },
+          "country_id": {
+            "title": "Country Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "country_id",
+          "amount"
+        ],
+        "title": "PublicAllocation",
+        "type": "object"
+      },
+      "PublicAttackEvaluation": {
+        "properties": {
+          "acceptable": {
+            "title": "Acceptable",
+            "type": "boolean"
+          },
+          "available": {
+            "title": "Available",
+            "type": "integer"
+          },
+          "defenders": {
+            "title": "Defenders",
+            "type": "integer"
+          },
+          "eliminates": {
+            "title": "Eliminates",
+            "type": "boolean"
+          },
+          "exposure_cost": {
+            "title": "Exposure Cost",
+            "type": "integer"
+          },
+          "income_denial": {
+            "title": "Income Denial",
+            "type": "integer"
+          },
+          "income_gain": {
+            "title": "Income Gain",
+            "type": "integer"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "integer"
+          },
+          "opponent_income": {
+            "title": "Opponent Income",
+            "type": "integer"
+          },
+          "opponent_power_bonus": {
+            "title": "Opponent Power Bonus",
+            "type": "integer"
+          },
+          "reward": {
+            "title": "Reward",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "urgency_bonus": {
+            "title": "Urgency Bonus",
+            "type": "integer"
+          },
+          "wins": {
+            "title": "Wins",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source_id",
+          "target_id",
+          "available",
+          "defenders",
+          "margin",
+          "reward",
+          "eliminates",
+          "wins",
+          "opponent_income",
+          "income_gain",
+          "income_denial",
+          "exposure_cost",
+          "opponent_power_bonus",
+          "urgency_bonus",
+          "score",
+          "acceptable"
+        ],
+        "title": "PublicAttackEvaluation",
+        "type": "object"
+      },
+      "PublicBattle": {
+        "properties": {
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "target_id"
+        ],
+        "title": "PublicBattle",
+        "type": "object"
+      },
+      "PublicBoardEvaluation": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "attacks": {
+            "items": {
+              "$ref": "#/components/schemas/PublicAttackEvaluation"
+            },
+            "title": "Attacks",
+            "type": "array"
+          },
+          "concentration": {
+            "title": "Concentration",
+            "type": "integer"
+          },
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCountryObservation"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "defensive_exposure": {
+            "title": "Defensive Exposure",
+            "type": "integer"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/PublicParticipantObservation"
+            },
+            "title": "Participants",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "turn_sequence": {
+            "title": "Turn Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actor_id",
+          "revision",
+          "turn_sequence",
+          "round",
+          "countries",
+          "participants",
+          "attacks",
+          "defensive_exposure",
+          "concentration"
+        ],
+        "title": "PublicBoardEvaluation",
+        "type": "object"
+      },
+      "PublicCommittedAction": {
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/PublicActor"
+          },
+          "committed_at": {
+            "format": "date-time",
+            "title": "Committed At",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PublicGameEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "npc_decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicNpcDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "action_id",
+          "actor",
+          "committed_at",
+          "events"
+        ],
+        "title": "PublicCommittedAction",
+        "type": "object"
+      },
+      "PublicCountry": {
+        "properties": {
+          "base_soldier_value": {
+            "maximum": 9.0,
+            "minimum": 1.0,
+            "title": "Base Soldier Value",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_id": {
+            "title": "Owner Id",
+            "type": "string"
+          },
+          "population": {
+            "exclusiveMinimum": 0.0,
+            "title": "Population",
+            "type": "integer"
+          },
+          "soldiers": {
+            "minimum": 1.0,
+            "title": "Soldiers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "population",
+          "owner_id",
+          "base_soldier_value",
+          "soldiers"
+        ],
+        "title": "PublicCountry",
+        "type": "object"
+      },
+      "PublicCountryObservation": {
+        "properties": {
+          "base_soldier_value": {
+            "title": "Base Soldier Value",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_id": {
+            "title": "Owner Id",
+            "type": "string"
+          },
+          "soldiers": {
+            "title": "Soldiers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "owner_id",
+          "soldiers",
+          "base_soldier_value"
+        ],
+        "title": "PublicCountryObservation",
+        "type": "object"
+      },
+      "PublicEndTurn": {
+        "properties": {
+          "type": {
+            "const": "end_turn",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "PublicEndTurn",
+        "type": "object"
+      },
+      "PublicEventPage": {
+        "properties": {
+          "after_revision": {
+            "title": "After Revision",
+            "type": "integer"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCommittedAction"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "next_after_revision": {
+            "title": "Next After Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "events",
+          "after_revision",
+          "next_after_revision",
+          "has_more"
+        ],
+        "title": "PublicEventPage",
+        "type": "object"
+      },
+      "PublicGame": {
+        "properties": {
+          "_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "attack_used": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attack Used"
+          },
+          "battle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicBattle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "countries": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PublicCountry"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "current_turn": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Turn"
+          },
+          "game_name": {
+            "title": "Game Name",
+            "type": "string"
+          },
+          "pending_reinforcements": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Reinforcements"
+          },
+          "phase": {
+            "anyOf": [
+              {
+                "enum": [
+                  "allocating",
+                  "deciding",
+                  "attacking",
+                  "post_attack",
+                  "finished"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase"
+          },
+          "players": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PublicParticipant"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "population_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicPopulationSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "schema_version": {
+            "anyOf": [
+              {
+                "enum": [
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Version"
+          },
+          "status": {
+            "default": "waiting",
+            "enum": [
+              "waiting",
+              "active",
+              "completed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "turn_order": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Order"
+          },
+          "turn_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Sequence"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "winner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winner"
+          }
+        },
+        "required": [
+          "game_name"
+        ],
+        "title": "PublicGame",
+        "type": "object"
+      },
+      "PublicGameEvent": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "allocations": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PublicAllocation"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "attacker_dice": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Attacker Dice",
+            "type": "array"
+          },
+          "attacker_losses": {
+            "default": 0,
+            "title": "Attacker Losses",
+            "type": "integer"
+          },
+          "defender_dice": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Defender Dice",
+            "type": "array"
+          },
+          "defender_losses": {
+            "default": 0,
+            "title": "Defender Losses",
+            "type": "integer"
+          },
+          "player_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Player Id"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "turn_sequence": {
+            "title": "Turn Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "attack_started",
+              "dice_exchange",
+              "conquered",
+              "eliminated",
+              "victory",
+              "transferred",
+              "allocated",
+              "attack_stopped",
+              "attack_failed",
+              "turn_ended",
+              "turn_started"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "actor_id",
+          "round",
+          "turn_sequence"
+        ],
+        "title": "PublicGameEvent",
+        "type": "object"
+      },
+      "PublicGameList": {
+        "properties": {
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/PublicGameSummary"
+            },
+            "title": "Games",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "games",
+          "next_cursor"
+        ],
+        "title": "PublicGameList",
+        "type": "object"
+      },
+      "PublicGameSummary": {
+        "properties": {
+          "_id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "current_turn": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Turn"
+          },
+          "game_name": {
+            "title": "Game Name",
+            "type": "string"
+          },
+          "phase": {
+            "anyOf": [
+              {
+                "enum": [
+                  "allocating",
+                  "deciding",
+                  "attacking",
+                  "post_attack",
+                  "finished"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "active",
+              "completed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "winner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winner"
+          }
+        },
+        "required": [
+          "_id",
+          "game_name",
+          "status"
+        ],
+        "title": "PublicGameSummary",
+        "type": "object"
+      },
+      "PublicNpcDecision": {
+        "properties": {
+          "action": {
+            "discriminator": {
+              "mapping": {
+                "allocate": "#/components/schemas/PublicAllocate",
+                "end_turn": "#/components/schemas/PublicEndTurn",
+                "roll": "#/components/schemas/PublicRoll",
+                "skip": "#/components/schemas/PublicSkip",
+                "start_attack": "#/components/schemas/PublicStartAttack",
+                "stop_attack": "#/components/schemas/PublicStopAttack",
+                "transfer": "#/components/schemas/PublicTransfer"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicAllocate"
+              },
+              {
+                "$ref": "#/components/schemas/PublicTransfer"
+              },
+              {
+                "$ref": "#/components/schemas/PublicStartAttack"
+              },
+              {
+                "$ref": "#/components/schemas/PublicRoll"
+              },
+              {
+                "$ref": "#/components/schemas/PublicStopAttack"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSkip"
+              },
+              {
+                "$ref": "#/components/schemas/PublicEndTurn"
+              }
+            ],
+            "title": "Action"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/PublicBoardEvaluation"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "projected_potential": {
+            "anyOf": [
+              {
+                "maxItems": 5,
+                "minItems": 5,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Potential"
+          },
+          "reason": {
+            "enum": [
+              "allocate",
+              "transfer",
+              "attack",
+              "continue",
+              "stop",
+              "skip",
+              "end_turn"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "strategy_version": {
+            "title": "Strategy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy_version",
+          "action",
+          "reason",
+          "explanation",
+          "evaluation"
+        ],
+        "title": "PublicNpcDecision",
+        "type": "object"
+      },
+      "PublicParticipant": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "human",
+              "npc"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "starting_country_id": {
+            "title": "Starting Country Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "starting_country_id"
+        ],
+        "title": "PublicParticipant",
+        "type": "object"
+      },
+      "PublicParticipantObservation": {
+        "properties": {
+          "countries": {
+            "title": "Countries",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "human",
+              "npc"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reinforcement_income": {
+            "title": "Reinforcement Income",
+            "type": "integer"
+          },
+          "soldiers": {
+            "title": "Soldiers",
+            "type": "integer"
+          },
+          "turn_distance": {
+            "title": "Turn Distance",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "countries",
+          "soldiers",
+          "reinforcement_income",
+          "turn_distance"
+        ],
+        "title": "PublicParticipantObservation",
+        "type": "object"
+      },
+      "PublicPopulationSnapshot": {
+        "properties": {
+          "dataset_id": {
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "population_year": {
+            "title": "Population Year",
+            "type": "integer"
+          },
+          "retrieved_on": {
+            "format": "date",
+            "title": "Retrieved On",
+            "type": "string"
+          },
+          "source_sha256": {
+            "title": "Source Sha256",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "source_url",
+          "population_year",
+          "retrieved_on",
+          "source_sha256"
+        ],
+        "title": "PublicPopulationSnapshot",
+        "type": "object"
+      },
+      "PublicRoll": {
+        "properties": {
+          "type": {
+            "const": "roll",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "PublicRoll",
+        "type": "object"
+      },
+      "PublicSkip": {
+        "properties": {
+          "type": {
+            "const": "skip",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "PublicSkip",
+        "type": "object"
+      },
+      "PublicStartAttack": {
+        "properties": {
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "start_attack",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "source_id",
+          "target_id"
+        ],
+        "title": "PublicStartAttack",
+        "type": "object"
+      },
+      "PublicStopAttack": {
+        "properties": {
+          "type": {
+            "const": "stop_attack",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "PublicStopAttack",
+        "type": "object"
+      },
+      "PublicTransfer": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "integer"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "transfer",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "source_id",
+          "target_id",
+          "amount"
+        ],
+        "title": "PublicTransfer",
+        "type": "object"
+      },
+      "Roll": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "roll",
+            "default": "roll",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "Roll",
+        "type": "object"
+      },
+      "Skip": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "skip",
+            "default": "skip",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "Skip",
+        "type": "object"
+      },
+      "StartAttack": {
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "start_attack",
+            "default": "start_attack",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "target_id"
+        ],
+        "title": "StartAttack",
+        "type": "object"
+      },
+      "StopAttack": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "stop_attack",
+            "default": "stop_attack",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "StopAttack",
+        "type": "object"
+      },
+      "Transfer": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount",
+            "type": "integer"
+          },
+          "source_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "target_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "transfer",
+            "default": "transfer",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "target_id",
+          "amount"
+        ],
+        "title": "Transfer",
+        "type": "object"
+      },
+      "UserPublic": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username"
+        ],
+        "title": "UserPublic",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "UCT INF4001N Entrance Exam 2027",
+    "title": "Geopolitics Game API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "home__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Home"
+      }
+    },
+    "/auth/csrf": {
+      "get": {
+        "operationId": "csrf_auth_csrf_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Csrf",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "me_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "register_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/countries": {
+      "get": {
+        "operationId": "list_countries_countries_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Countries"
+      }
+    },
+    "/games": {
+      "post": {
+        "operationId": "create_game_games_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GameSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGame"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Game",
+        "tags": [
+          "game sessions"
+        ]
+      }
+    },
+    "/games/{game_id}": {
+      "get": {
+        "operationId": "read_game_games__game_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Game"
+      }
+    },
+    "/games/{game_id}/actions": {
+      "post": {
+        "operationId": "human_action_games__game_id__actions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicActionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Action",
+        "tags": [
+          "game sessions"
+        ]
+      }
+    },
+    "/games/{game_id}/events": {
+      "get": {
+        "operationId": "events_games__game_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_revision",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After Revision",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEventPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Events",
+        "tags": [
+          "game sessions"
+        ]
+      }
+    },
+    "/games/{game_id}/npc-steps": {
+      "post": {
+        "operationId": "npc_step_games__game_id__npc_steps_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NpcStepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicActionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Npc Step",
+        "tags": [
+          "game sessions"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/me/games": {
+      "get": {
+        "operationId": "list_games_me_games_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "waiting",
+                    "active",
+                    "completed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-fA-F]{24}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGameList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Games",
+        "tags": [
+          "game sessions"
+        ]
+      }
+    }
+  }
+}
