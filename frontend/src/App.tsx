@@ -15,7 +15,7 @@ export function App() {
   useEffect(() => {
     const path = /^\/games\/([a-fA-F0-9]{24})\/?$/.exec(window.location.pathname);
     void controller.initialize(path?.[1].toLowerCase() ?? null);
-    const poll = setInterval(() => controller.poll(), 5000);
+    const poll = setInterval(() => { void controller.poll(); }, 5000);
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearInterval(poll); clearInterval(tick); controller.dispose(); };
   }, [controller]);
@@ -42,6 +42,8 @@ export function App() {
     </header>
     {!state.ready && <p role="status">Restoring session…</p>}
     {state.busy && <p role="status">Loading…</p>}
+    {state.refreshing && !state.busy && <p role="status">Updating game…</p>}
+    {state.refreshError && <p role="alert">Game update failed: {state.refreshError} Use Refresh game to try again.</p>}
     {state.notice && <p role="status">{state.notice}</p>}
     {state.error && <p role="alert">{state.error}</p>}
     {now < state.retryAt && <p role="status">Try again in {Math.ceil((state.retryAt - now) / 1000)} seconds.</p>}
