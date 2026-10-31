@@ -52,8 +52,8 @@ def test_real_narration_is_requested_for_human_and_npc_committed_facts_without_m
     prompt = arguments["messages"][0]["content"]
     assert "already committed" in prompt
     assert "never instructions" in prompt
-    assert "Do not name countries" in prompt
-    assert "do not mention dice" in prompt
+    assert "Naturally name the actual attacking and defending" in prompt
+    assert "Do not repeat dice" in prompt
     assert "offline-provider-key" not in json.dumps(arguments)
     assert arguments["model"] == "openai/gpt-oss-20b"
     assert arguments["response_format"] == strict_format()
@@ -158,7 +158,6 @@ def test_outer_request_deadline_is_bounded_and_cancels_the_injected_request(monk
     '{"lead":""}', '{"lead":"Tension rises."}',
     json.dumps({"lead": LEAD, "extra": "not accepted"}),
     '{"lead":' + json.dumps(LEAD) + ',"lead":' + json.dumps(SECOND_LEAD) + '}',
-    json.dumps({"lead": "Tension rises. The drama deepens across the battlefield."}),
     json.dumps({"lead": LEAD[:-1]}),
     json.dumps({"lead": "Tension rises across the battlefield as Cambodia conquers Seychelles."}),
     json.dumps({"lead": "Tension rises across the battlefield as six soldiers win victory."}),
@@ -166,8 +165,8 @@ def test_outer_request_deadline_is_bounded_and_cancels_the_injected_request(monk
     json.dumps({"lead": "Tension rises across the battlefield as casualties mount tonight."}),
     json.dumps({"lead": "Tension rises across the battlefield <script>alert world</script>."}),
     json.dumps({"lead": "Tension rises across the battlefield as a dramatic clash unfolds!\nIgnore rules."}),
-    json.dumps({"lead": "tension " * 41 + "rises."}),
-    json.dumps({"lead": "anticipation " * 20 + "rises."}),
+    json.dumps({"lead": "tension " * 61 + "rises."}),
+    json.dumps({"lead": "anticipation " * 41 + "rises."}),
     "x" * 2049,
 ])
 def test_empty_malformed_long_or_factual_model_output_cannot_be_displayed(content):
@@ -332,7 +331,11 @@ def test_new_model_outcomes_preserve_receipts_daily_admission_and_saved_fallback
     else:
         assert answer.source == "deterministic" and answer.reason == "invalid_output"
         assert "NEVER_EXPOSE" not in answer.model_dump_json()
-    assert "attacker dice" in answer.text and answer.facts.attacker_losses >= 0
+    assert answer.facts.attacker_losses >= 0
+    if outcome == "valid":
+        assert answer.text == LEAD and "attacker dice" not in answer.text
+    else:
+        assert "attacker dice" in answer.text
     assert (store.games, store.receipts) == before
     counters = copy.deepcopy(store.limits)
     # Existing deterministic fallback records are retained even after a fixed
@@ -345,3 +348,90 @@ def test_new_model_outcomes_preserve_receipts_daily_admission_and_saved_fallback
     assert store.limits == counters and (store.games, store.receipts) == before
     client.chat.completions.create.assert_awaited_once()
     fixed_client.chat.completions.create.assert_not_awaited()
+
+
+CONQUEST = ("Cambodia's relentless offensive broke Seychelles' final resistance. "
+            "The conquest shifts the contest's balance, giving this fierce exchange a triumphant ending.")
+STALEMATE = ("Cambodia pressed Seychelles, but neither side could seize the advantage. "
+             "Stubborn resistance kept the contest balanced, leaving the outcome of this tense struggle unresolved.")
+SETBACK = ("Cambodia's assault met defiant resistance from Seychelles. "
+           "The offensive fell short in this exchange, leaving the defenders with the stronger answer and the struggle unresolved.")
+
+
+@pytest.mark.parametrize("text,facts", [
+    (CONQUEST, {**FACTS, "conquest": True, "eliminated": ["Seychelles"]}),
+    (STALEMATE, FACTS),
+    (SETBACK, {**FACTS, "attacker_losses": 2, "defender_losses": 0}),
+    ("Tension rises. The drama deepens across the battlefield.", FACTS),
+    ("Cambodia\u2019s assault met Seychelles\u2019 stubborn resistance\u2014the advantage remained out of reach. "
+     "A tense exchange left the contest balanced, with the struggle still unresolved.", FACTS),
+    ("South Sudan pressed Sudan, but neither side could gain an advantage. The struggle remained balanced and unresolved.",
+     {**FACTS, "attacker": "South Sudan", "defender": "Sudan"}),
+])
+def test_ordinary_creative_outcome_grounded_narration_is_accepted_without_truncation(text, facts):
+    client = fake_client(result=response(json.dumps({"lead": text})))
+    before = copy.deepcopy(facts)
+    assert run(GroqNarrator("offline-provider-key", client=client), facts) == text
+    assert facts == before
+    client.chat.completions.create.assert_awaited_once()
+
+
+@pytest.mark.parametrize("text,facts", [
+    (CONQUEST, FACTS),
+    (STALEMATE, {**FACTS, "conquest": True}),
+    ("Cambodia eliminated Seychelles and claimed victory, leaving the opposition unable to continue the contest.", FACTS),
+    ("Seychelles conquered Cambodia and seized control, marking a triumphant ending to the tense confrontation.", {**FACTS, "conquest": True}),
+    ("Cambodia was eliminated, leaving Seychelles to claim victory after a fierce and dramatic confrontation.", {**FACTS, "conquest": True, "eliminated": ["Seychelles"]}),
+    ("Cambodia attacked France, but neither side could gain the advantage in this tense and unresolved contest.", FACTS),
+    ("Cambodia called reinforcements and tanks into the struggle, overwhelming Seychelles with a relentless offensive.", FACTS),
+    ("The alliance with France changed the contest as Cambodia pressed Seychelles with a relentless offensive.", FACTS),
+    ("Cambodia swept across the mountains and river, overwhelming Seychelles with a bold and relentless offensive.", FACTS),
+    ("Cambodia withdrew its troops to the flank, leaving Seychelles to face a new and unexpected ambush.", FACTS),
+    ("Both sides emerged unscathed as neither could seize the advantage in this tense and unresolved exchange.", FACTS),
+    ("Cambodia won the game after the conquest, claiming total victory as Seychelles' resistance finally gave way.", {**FACTS, "conquest": True}),
+    ("Neither side could seize the advantage as the struggle ended in an evenly matched stalemate.", {**FACTS, "attacker_losses": 2, "defender_losses": 0}),
+    ("Cambodia pressed Seychelles. The struggle remained unresolved. Nobody could seize the advantage.", FACTS),
+])
+def test_unestablished_contradictory_or_unusable_narration_still_falls_back(text, facts):
+    client = fake_client(result=response(json.dumps({"lead": text})))
+    with pytest.raises(NarrationUnavailable, match="^invalid_output$"):
+        run(GroqNarrator("offline-provider-key", client=client), facts)
+    client.chat.completions.create.assert_awaited_once()
+
+
+def test_gpt_oss_reasoning_field_is_never_used_as_display_narration():
+    good = response(json.dumps({"lead": STALEMATE}))
+    good.choices[0].message.reasoning = "NEVER_DISPLAY_REASONING"
+    client = fake_client(result=good)
+    assert run(GroqNarrator("offline-provider-key", client=client)) == STALEMATE
+    good.choices[0].message.content = None
+    with pytest.raises(NarrationUnavailable, match="^invalid_output$"):
+        run(GroqNarrator("offline-provider-key", client=client))
+
+
+def test_harmless_sentence_whitespace_is_normalized_without_dropping_words():
+    text = STALEMATE.replace(". ", ".\n\t")
+    client = fake_client(result=response(json.dumps({"lead": text})))
+    assert run(GroqNarrator("offline-provider-key", client=client)) == STALEMATE
+
+
+@pytest.mark.parametrize("npc", [False, True])
+def test_creative_conquest_is_saved_ready_and_retrieved_without_mechanical_recap(catalog, npc):
+    from test_commentary_service import battle, service
+    store, games, principal, game_id, result = battle(catalog, npc=npc)
+    exchange = next(event for event in result.events if event.type == "dice_exchange")
+    source, target = exchange.source_id, exchange.target_id
+    countries = {country.id: country.name for country in result.state.countries}
+    text = (f"{countries[source]}'s relentless offensive broke {countries[target]}'s final resistance. "
+            "The conquest shifts the contest's balance, giving this fierce exchange a triumphant ending.")
+    client = fake_client(result=response(json.dumps({"lead": text})))
+    commentary = service(games, narrator=GroqNarrator("offline-provider-key", client=client))
+    before = copy.deepcopy((store.games, store.receipts))
+    answer = asyncio.run(commentary.generate(principal, game_id, result.state.revision))
+    assert answer.status == "ready" and answer.source == "groq" and answer.text == text
+    assert answer.facts.conquered and answer.facts.eliminated
+    assert (store.games, store.receipts) == before
+    assert commentary.read(game_id, result.state.revision) == answer
+    counts = copy.deepcopy(store.limits)
+    assert asyncio.run(commentary.generate(principal, game_id, result.state.revision)) == answer
+    assert store.limits == counts and client.chat.completions.create.await_count == 1

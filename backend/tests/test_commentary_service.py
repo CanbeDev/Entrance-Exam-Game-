@@ -105,9 +105,8 @@ def test_success_is_grounded_in_committed_dice_losses_conquest_and_elimination(c
     assert answer.facts.defender_losses == dice.defender_losses
     assert answer.facts.conquered == any(event.type == "conquered" for event in result.events)
     assert answer.facts.conquered and answer.facts.eliminated
-    assert "is conquered" in answer.text and "eliminated participants:" in answer.text
-    assert "attacker dice [" in answer.text and "soldier losses" in answer.text
-    assert answer.text.count(".") == 2
+    assert answer.text == "Tension hangs over the battlefield as a fierce clash unfolds."
+    assert "attacker dice" not in answer.text and "soldier losses" not in answer.text
     context = answer.facts.model_dump(mode="json")
     context.update(attacker_dice_count=len(dice.attacker_dice), defender_dice_count=len(dice.defender_dice))
     assert commentary.narrator.calls == [context]
@@ -143,13 +142,10 @@ def test_more_than_three_dice_keep_original_pair_order_and_losses(catalog, count
     assert answer.facts.defender_dice == tuple(defender)
     assert answer.facts.attacker_losses == answer.facts.defender_losses == 2 * (count // 5)
     assert answer.facts.conquered is False
-    assert "attacker dice [6, 2, 5, 1, 4" in answer.text
-    assert "defender dice [1, 6, 3, 2, 4" in answer.text
+    assert "attacker dice" not in answer.text
     payload = commentary.narrator.calls[0]
     assert payload["attacker_dice"] == attacker[:12] and payload["attacker_dice_count"] == count
     assert payload["defender_dice"] == defender[:12] and payload["defender_dice_count"] == count
-    if count > 12:
-        assert "20 dice total; full rolls in battle details" in answer.text
 
 
 def test_missing_local_key_persists_fallback_without_opening_a_provider_client(catalog):
@@ -368,7 +364,7 @@ def test_tied_dice_preserve_zero_losses_and_do_not_invent_conquest(catalog):
     assert answer.facts.attacker_dice == answer.facts.defender_dice == (3,) * 5
     assert answer.facts.attacker_losses == answer.facts.defender_losses == 0
     assert answer.facts.conquered is False and answer.facts.eliminated == ()
-    assert "soldier losses 0 for the attacker and 0 for the defender" in answer.text
+    assert "soldier losses" not in answer.text
     assert "conquered" not in answer.text and "eliminated" not in answer.text
     assert (store.games, store.receipts) == before
 

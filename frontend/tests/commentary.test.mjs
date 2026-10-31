@@ -207,6 +207,11 @@ test('real commentary UI renders human/NPC narration, fallback/loading and spect
     const escaped = render({ commentary: { ...value(), text: '<script>alert(1)</script>' } });
     assert.match(escaped, /&lt;script&gt;/);
     assert.doesNotMatch(escaped, /<script>/);
+    const chronicle = "South Africa's assault met France's stubborn resistance. The contest remained balanced, leaving both sides searching for an advantage in a tense, unresolved exchange.";
+    const narration = render({ commentary: { ...value(), text: chronicle } });
+    assert.match(narration, /LLM-generated narration/);
+    assert.match(narration, /stubborn resistance/);
+    assert.match(narration, /tense, unresolved exchange/);
     const failed = render({ error: 'Saved commentary is unavailable.' });
     assert.match(failed, /South Africa attacked France/); assert.match(failed, /Attacker dice: 6, 2; defender dice: 5, 3/);
     const history = renderToStaticMarkup(createElement(History, { game, events: [entry], latest: null, more: false,

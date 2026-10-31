@@ -17,14 +17,15 @@ and NPC receipts. No game creation/action/NPC service calls the provider or wait
 for narration. The existing 20-second gameplay deadline and receipt recovery,
 idempotency, revisions, acceptance limit and Pause logic are unchanged.
 
-Groq generates one varied atmospheric sentence using a constrained vocabulary.
-The backend rejects factual vocabulary, numbers, country names, malformed JSON,
-truncated or long output. It appends a deterministic sentence containing the
-actual attacking/defending countries, dice, losses, conquest and eliminations.
-This deliberate composition prevents model-created battle outcomes. The UI
-labels LLM narration separately from authoritative results and NPC explanations.
-Long dice lists are compacted in narration/provider context; full actual arrays
-remain in returned facts and committed history. No dice are recalculated.
+Groq generates a varied 1–2-sentence war chronicle, ideally 20–40 words. Ordinary
+vocabulary, country names and punctuation are allowed. Local checks reject
+malformed/truncated/overlong text and explicit unsupported or contradictory
+outcomes. Accepted narration is stored as `ready`/`groq` without a mechanical
+statistics suffix. Deterministic fallback still uses the factual summary.
+The UI keeps narration separate from exact battle results and NPC explanations.
+Full actual dice/losses/ownership remain in authoritative fields and history;
+no dice are recalculated. The text guard is conservative and cannot formally
+prove the truth of arbitrary natural language; it never supplies game state.
 
 ## API contract
 
@@ -84,7 +85,7 @@ The SDK has no automatic retries, a six-second HTTP timeout, an eight-second
 overall provider deadline. GPT-OSS requests have a 512-token total completion
 ceiling with low reasoning effort; other explicitly configured models retain
 the legacy 120-token JSON-mode ceiling. Visible narration remains limited to
-240 characters and 8–40 words. Provider context is bounded.
+480 characters and 8–60 words, targeting 20–40 words. Provider context is bounded.
 No worker queue or background task is started by gameplay.
 
 Frontend retrieval/generation queues and caches are independent of gameplay.
@@ -218,8 +219,8 @@ Frontend: **167 passed, 0 failed, 0 skipped**, comprising 141 retained regressio
 and 26 commentary/live-narration tests. TypeScript and the Vite production build
 passed; all **43 OpenAPI components** passed the contract check.
 
-Backend: **906 passed, 0 failed, 44 skipped** in the latest complete isolated run.
-New coverage is 66 provider, 21 repository, 42 service, 17 API and 3 startup cases. The 44 real
+Backend: **929 passed, 0 failed, 44 skipped** in the latest complete isolated run.
+New coverage is 89 provider, 21 repository, 42 service, 17 API and 3 startup cases. The 44 real
 MongoDB/provisioning/startup opt-in cases remain skipped without authorization.
 All tests block external network access and use isolated memory/provider fixtures;
 none imports `backend/test_database.py`. One existing Starlette/httpx deprecation
@@ -484,3 +485,114 @@ after deployment. Any future live validation must separately approve one new
 eligible receipt/provider attempt; never delete/reset/retry existing claims.
 No key, environment, production game, browser tab, Git index/history or deployment
 was changed. Release remains ready for separate approval with these limitations.
+
+## Final narration acceptance correction — complete, then stop
+
+Production baseline reported by the user: `a198bc1`, Render model
+`openai/gpt-oss-20b`. Move 7 reached Groq and received HTTP 200 with 616 input
+tokens, 399 output tokens and 0.631s provider processing, yet saved
+`fallback`/`deterministic`/`invalid_output`. Earlier Moves 2/6 remain saved fallbacks.
+No historical response body or new production/provider request was available.
+
+Most likely rejection: the old validator accepted only one sentence of 8–40
+words/240 characters, ASCII letters/spaces/comma/semicolon and a tiny atmospheric
+word list. It explicitly excluded countries, apostrophes, dashes, ordinary
+creative vocabulary and second sentences. Source and new regression examples
+prove it rejected usable narration. Move 7's exact branch cannot be proven
+without its response; a non-stop finish reason, empty content or old length
+limit remain possible. Output-token usage can include reasoning and does not
+establish the final narration's character count. No transport or JSON-mode
+architecture rewrite is justified by this HTTP 200 evidence.
+
+### Focused implementation
+
+- Keep the strict GPT-OSS schema (`lead` string only), 512 completion-token cap,
+  low reasoning effort, reasoning exclusion, timeouts and zero retries.
+- Request entertaining 1–2-sentence narration, ideally 20–40 words, grounded in
+  the actual countries, recorded conquest/elimination and exchange losses.
+  Vary tone/opening; avoid numeric recaps and unestablished details.
+- Parse `message.content` only; reasoning is never used as narration. Keep
+  finish_reason `stop`, exact JSON-key/type/duplicate checks and malformed
+  response handling. Normalize ordinary whitespace; do not truncate text.
+- Replace the tiny positive vocabulary with a conservative factual guard.
+  Accept ordinary vocabulary and Unicode punctuation. Retain a hard 8–60-word,
+  480-character, two-sentence ceiling. Reject markup/control characters, numbers/
+  statistical recaps, unrelated catalog countries, unrecorded conquest/elimination,
+  reversed conquest, contradictory stalemate/no-loss claims, invented concrete
+  weapons/reinforcements/alliances/geography/movements and graphic content.
+- Use the shipped immutable country catalog locally, cached once. No network,
+  database metadata, dependency, collection or environment setting is added.
+- Store accepted narrative directly as `ready`/`groq`; do not append the existing
+  dice/loss summary to it. Exact public facts/history stay unchanged. Invalid
+  responses retain the same deterministic fallback, claim and admission behavior.
+
+This is a focused content guard, not a semantic theorem prover. Unusual valid
+phrasing may still fall back, and creative prose can require human review. No
+model output can mutate authoritative facts. The existing UI labels it LLM text.
+
+### Exact files changed for this correction
+
+| File | Change |
+| --- | --- |
+| `backend/app/services/groq_commentary.py` | Creative prompt, flexible text parsing/length limits and context-aware checks. |
+| `backend/app/services/commentary_service.py` | Save AI narrative alone; preserve factual fallback and exact facts. |
+| `backend/tests/test_groq_commentary.py` | Accepted conquest/stalemate/setback, punctuation/whitespace, content-only extraction, contradiction and persisted-ready regressions. |
+| `backend/tests/test_commentary_service.py` | Check unchanged factual fields separately from non-statistical AI text. |
+| `frontend/tests/commentary.test.mjs` | Existing real-component rendering case now checks entertaining two-sentence narration. |
+| `backend/docs/REQUIREMENTS.md` | Append current evidence; preserve unrelated opening Stage E hunk. |
+| `docs/PHASE4_GROQ_COMMENTARY.md` | Current design, evidence, limits and manual handover. |
+
+No files were added or deleted. No public JSON Schema/API/frontend application
+behavior, environment variable, dependency, engine rule or NPC strategy changed.
+Existing Stage E edits, local validator exports and handoff remain outside scope.
+
+### Illustrative writing — not actual Groq output
+
+- Conquest: “Cambodia's relentless offensive broke Seychelles' final resistance.
+  The conquest shifts the contest's balance, giving this fierce exchange a
+  triumphant ending.”
+- Stalemate: “Cambodia pressed Seychelles, but neither side could seize the
+  advantage. Stubborn resistance kept the contest balanced, leaving the outcome
+  of this tense struggle unresolved.”
+- Attacker setback: “Cambodia's assault met defiant resistance from Seychelles.
+  The offensive fell short in this exchange, leaving the defenders with the
+  stronger answer and the struggle unresolved.”
+
+### Final verification and handover
+
+The final complete isolated backend suite passes **929, with 0 failures and 44
+real-database cases skipped**. Frontend passes **167, with 0 failures/skips**.
+TypeScript/build, 43 contracts, pip check, source-contract equality, whitespace
+and targeted source/bundle secret checks pass. The pre-existing Starlette/httpx
+warning remains. Focused narrative tests prove accepted prose can persist and
+be read as ready/groq; prior fallback/restart/cap/Pause/recovery tests remain.
+No real MongoDB/provider/production test was run; those require approval.
+
+No extra Render environment variable or dependency step is needed. Manually
+deploy the reviewed backend release only after approval; the public API and
+frontend application have not changed, so no frontend deployment is required
+for this correction. Do not reset/delete/retry Moves 2, 6 or 7.
+
+For one separately approved production check:
+
+1. Preserve the existing production tab. In an authorized normal owner session,
+   identify ONE already committed dice-exchange receipt whose commentary is
+   not_generated, excluding Moves 2/6/7. Do not infer eligibility from move number
+   alone or advance NPCs to manufacture a test.
+2. Read its commentary and record only public game/revision/action identity.
+   Require no pending gameplay mutation and confirmed ownership. Avoid unrelated
+   new exchanges while default-on live narration is active.
+3. Approve ONE explicit Generate AI commentary submission for that exact receipt.
+   Do not repeatedly click. Groq should show one successful completion on
+   GPT-OSS; success also requires the app response/public saved GET to show
+   status=ready, source=groq and the associated narrative, not provider 200 alone.
+4. Compare narration to the actual exchange and inspect the existing dice/facts
+   separately. Check saved/public viewing without generating again. Game revision
+   and receipts must remain unchanged by commentary.
+5. On fallback/interruption, STOP and preserve evidence; use only read-only saved
+   retrieval. No regeneration, claim deletion, automatic retry, game mutation or
+   new allowance is authorized by this procedure.
+
+**READY FOR REVIEW AND MANUAL DEPLOYMENT.** Local completion does not claim the
+corrected text has passed live acceptance. The agent performed no Git mutation,
+deployment, environment change, live API call, Atlas access or browser operation.

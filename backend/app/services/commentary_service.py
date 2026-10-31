@@ -147,7 +147,9 @@ class CommentaryService:
                     context[name + "_count"] = len(context[name])
                     context[name] = context[name][:12]
                 lead = await asyncio.wait_for(self.narrator.generate(context), timeout=8.5)
-                result = base.model_copy(update={"status": "ready", "source": "groq", "text": lead + " " + base.text})
+                # Keep narrative and exact results separate. Facts/dice remain
+                # unchanged in their authoritative fields and existing UI.
+                result = base.model_copy(update={"status": "ready", "source": "groq", "text": lead})
             except NarrationUnavailable as error:
                 result = base.model_copy(update={"status": "fallback", "reason": error.reason})
             except SecurityError:

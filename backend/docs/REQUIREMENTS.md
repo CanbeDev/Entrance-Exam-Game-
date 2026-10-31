@@ -159,3 +159,17 @@ and durable-fallback regressions pass; complete checks pass 906 backend tests
 (44 real cases skipped), 167 frontend tests and 43 contracts, with no failures.
 No existing fallback, game receipt, admission counter, secret or production
 configuration was modified. Live corrected-provider acceptance remains open.
+
+Final narration acceptance correction (local, production baseline a198bc1): the
+user reports provider HTTP 200 at Move 7 but invalid_output fallback. The exact
+body is unavailable; the old one-sentence/ASCII/atmospheric-word allowlist is a
+demonstrated cause of rejecting usable creative prose and the most likely live
+cause. The adapter now accepts short, outcome-grounded 1–2-sentence narration
+with country names, ordinary vocabulary/punctuation and safe whitespace. It
+retains strict JSON, truncation/malformed checks and conservative contradiction/
+unsupported-detail guards. Accepted text is saved as ready/groq without a dice
+recap; exact battle facts and deterministic fallback remain unchanged. Complete
+offline suites pass 929 backend tests (44 real cases skipped), 167 frontend tests
+and 43 contracts, with no failures. No schema, dependency, environment, gameplay,
+security, rate limit, existing record or production change was made. Review and
+one separately approved new-receipt live check remain before final acceptance.
