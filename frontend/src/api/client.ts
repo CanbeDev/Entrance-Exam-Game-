@@ -10,6 +10,7 @@ import { catalogSchema, component, csrfSchema, loginSchema, parser } from './val
 export interface CreationOperation { readonly key: string; readonly body: GameSetupRequest }
 export interface HumanOperation { readonly gameId: string; readonly command: ActionCommand }
 export interface NpcOperation { readonly gameId: string; readonly command: NpcStepRequest }
+export interface NpcObservation { readonly actorId: string; readonly turnSequence: number | null | undefined }
 
 function validate<T>(check: (value: unknown) => T, value: unknown): T {
   try { return check(value); }
@@ -178,9 +179,9 @@ export class GameApi {
     this.states.set(id, snapshot);
     return snapshot;
   }
-  async getGame(id: string): Promise<PublicGame> {
+  async getGame(id: string, { anonymous = false }: { anonymous?: boolean } = {}): Promise<PublicGame> {
     id = gameId(id);
-    const state = await this.http.request(`/games/${id}`, { parse: component('PublicGame') });
+    const state = await this.http.request(`/games/${id}`, { parse: component('PublicGame'), anonymous });
     return this.remember(id, state);
   }
   events(id: string, filters: EventFilters = {}): Promise<PublicEventPage> {
@@ -195,6 +196,26 @@ export class GameApi {
   prepareNpcStep(id: string, expectedRevision: number): NpcOperation {
     return cloneFrozen({ gameId: gameId(id), command: { expected_revision: integer(expectedRevision, 0) } });
   }
+  async findNpcReceipt(operation: NpcOperation, observation: NpcObservation): Promise<PublicEventPage | null> {
+    const prepared = this.prepareNpcStep(operation.gameId, operation.command.expected_revision);
+    const revision = prepared.command.expected_revision;
+    const sequence = observation.turnSequence;
+    if (sequence == null || !Number.isSafeInteger(sequence) || sequence < 0) return null;
+    // This is the backend's existing NPC replay identity: game + expected
+    // revision + NPC actor. No new action ID or protected submission is created.
+    const page = await this.http.request(`/games/${prepared.gameId}/events${query({ after_revision: revision, limit: 1 })}`, {
+      parse: component('PublicEventPage'), anonymous: true,
+    });
+    const receipt = page.events[0];
+    const decision = receipt?.npc_decision;
+    if (page.after_revision !== revision || page.events.length !== 1 || !receipt || !decision
+        || receipt.revision !== revision + 1 || page.next_after_revision !== receipt.revision
+        || receipt.actor.kind !== 'npc' || receipt.actor.player_id !== observation.actorId
+        || decision.evaluation.actor_id !== observation.actorId || decision.evaluation.revision !== revision
+        || decision.evaluation.turn_sequence !== sequence
+        || receipt.action_id !== `npc-${decision.strategy_version}-${sequence}-${revision}`) return null;
+    return cloneFrozen(page);
+  }
   private async serial<T>(key: string, operation: () => Promise<T>): Promise<T> {
     if (this.inFlight.has(key)) throw new ApiError('client', { code: 'mutation_in_flight' });
     this.inFlight.add(key);
@@ -208,16 +229,29 @@ export class GameApi {
         const response = await this.http.request(path, { method: 'POST', body,
           headers, parse: component('PublicActionResult') });
         // Keep route identity separately: receipt.state can legitimately omit _id.
-        if (response.state.revision == null) throw new ApiError('malformed', { uncertain: true });
+        if (response.state.revision == null || response.state._id && response.state._id.toLowerCase() !== id) {
+          throw new ApiError('malformed', { uncertain: true });
+        }
         const previous = this.states.get(id);
         const staleResponse = previous?.revision != null && response.state.revision < previous.revision;
-        const state = staleResponse ? await this.getGame(id) : this.remember(id, response.state);
+        let state: PublicGame;
+        if (staleResponse) {
+          try { state = await this.getGame(id); }
+          catch (cause) {
+            // The receipt arrived, but the operation has not reached a usable UI
+            // outcome. A failed follow-up GET must not release the saved lock.
+            const error = cause instanceof ApiError ? cause : undefined;
+            throw new ApiError(error?.kind ?? 'network', { status: error?.status,
+              code: 'committed_state_unavailable', uncertain: true,
+              retryAfterMs: error?.retryAfterMs, diagnostics: error?.diagnostics });
+          }
+        } else state = this.remember(id, response.state);
         return Object.freeze({ state, response: cloneFrozen(response), staleResponse });
       } catch (error) {
         if (error instanceof ApiError && error.kind === 'malformed' && !error.uncertain) {
           throw new ApiError('malformed', { status: error.status, uncertain: true });
         }
-        if (error instanceof ApiError && error.status === 409) {
+        if (error instanceof ApiError && error.status === 409 && error.code !== 'committed_state_unavailable') {
           try { error.latestState = await this.getGame(id); } catch { /* Keep the original conflict; caller sees no invented state. */ }
         }
         throw error;

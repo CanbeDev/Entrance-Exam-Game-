@@ -137,9 +137,10 @@ revocation. Timeouts cover response parsing as well as fetch.
 
 ## Saved-request recovery and NPC acceptance limit
 
-Local verification: 105 automated tests passed (75 existing plus 30 new), with
-TypeScript, the production build and all 40 OpenAPI component checks passing.
-This does not establish production recovery or browser acceptance of the patch.
+Local verification: 141 automated tests passed, 0 failed/skipped (105 existing
+plus 36 new), with TypeScript/build and all 40 contract checks passing. Tests use
+short synthetic deadlines for fault injection; the real deadline stays 20 seconds.
+Local tests do not establish production recovery or browser acceptance.
 
 An outstanding operation retains its original account, game, payload and action
 ID/key/revision. Failed retry preparation, including expired sessions, keeps the
@@ -149,6 +150,29 @@ request** explicitly; it refreshes CSRF and checks account/ownership again.
 An unconfirmed retry rejection keeps the lock for review. Do not reload or leave
 while a saved request remains: it exists only in page memory. A new deployment
 does not migrate the pending operation from an already-open production tab.
+
+An uncertain NPC POST now pauses fast-forward and makes one bounded anonymous
+receipt lookup, followed by an anonymous board read only if the receipt matches.
+Confirmation checks the requested game route, successor revision, observed NPC,
+original turn sequence, decision evaluation and canonical server action ID. An
+advanced board revision alone is insufficient. Matching evidence and a usable
+authoritative board clear pending without another POST; fast-forward stays paused.
+Otherwise the same operation/account/payload remains locked. **Check committed
+outcome (read only)** repeats those reads explicitly, including when the NPC POST
+allowance is exhausted or the session has expired. It never sends authentication,
+CSRF or gameplay POSTs. Read-check failure preserves pending and Retry-After.
+
+Recovered transfers, dice/losses and explanations are merged into committed
+history. A targeted receipt cannot skip unloaded history pages or rewind newer
+state. A valid older action receipt whose follow-up state read fails also retains
+the saved operation for confirmation. No missing result is treated as success.
+
+The HTTP deadline remains 20 seconds. Errors expose only sanitized kind/status,
+elapsed milliseconds, response/body/validation phase and observed header status.
+Network failures while reading a body differ from malformed JSON/schema errors.
+Observed headers alone do not prove complete response delivery. No raw exception,
+request body, cookie, CSRF value or credential is logged. Successful reconciliation
+reports the original response issue and confirmed committed move separately.
 
 On an owned game, open **Optional NPC acceptance limit** and enter a maximum
 number of NPC POST attempts for this page. Zero blocks attempts; an unset limit

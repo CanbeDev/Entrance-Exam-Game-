@@ -43,7 +43,8 @@ export function App() {
       {state.session && <p>Logged in as {state.session.user.username}. <button disabled={disabled} onClick={() => void controller.logout()}>Log out</button></p>}
     </header>
     {!state.ready && <p role="status">Restoring session…</p>}
-    {state.busy && <p role="status">Loading…</p>}
+    {state.busy && !state.confirmingPending && <p role="status">Loading…</p>}
+    {state.confirmingPending && <p role="status">Checking the saved NPC outcome using read-only history…</p>}
     {state.refreshing && !state.busy && <p role="status">Updating game…</p>}
     {state.refreshError && <p role="alert">Game update failed: {state.refreshError} Use Refresh game to try again.</p>}
     {state.notice && <p role="status">{state.notice}</p>}
@@ -54,6 +55,8 @@ export function App() {
       <p>Original account: {state.pending.account.username}.</p>
       {state.pending.kind !== 'create' && <p>Saved {state.pending.kind === 'npc' ? 'NPC' : 'human'} request:
         {' '}game {state.pending.operation.gameId}, expected revision {state.pending.operation.command.expected_revision}.</p>}
+      {state.pending.kind === 'npc' && <button disabled={now < state.retryAt}
+        onClick={() => void controller.checkPendingNpc()}>Check committed outcome (read only)</button>}
       <button disabled={now < state.retryAt || recoveryLogin || state.pending.kind === 'npc' && npcLimitReached}
         onClick={() => void controller.retryPending()}>Retry saved request</button>
     </section>}

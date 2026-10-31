@@ -1,10 +1,10 @@
 import { ApiError, GameApi } from '../api/index.ts';
 import type { ActionCommand, ActionOutcome, CountryCatalog, CreationOperation, Credentials, GameFilters,
-  HumanOperation, NpcOperation, PublicActionResult, PublicCommittedAction, PublicEventPage, PublicGame, PublicGameList, Session } from '../api/index.ts';
+  HumanOperation, NpcOperation, NpcObservation, PublicActionResult, PublicCommittedAction, PublicEventPage, PublicGame, PublicGameList, Session } from '../api/index.ts';
 import { activeParticipant, playable } from './view.ts';
 
 type PendingOperation = { kind: 'create'; operation: CreationOperation } | { kind: 'human'; operation: HumanOperation }
-  | { kind: 'npc'; operation: NpcOperation };
+  | { kind: 'npc'; operation: NpcOperation; observation: NpcObservation };
 type Pending = PendingOperation & { readonly account: Session['user'] };
 export interface AppState {
   ready: boolean; busy: boolean; session: Session | null; error: string | null; notice: string | null;
@@ -14,10 +14,18 @@ export interface AppState {
   events: readonly PublicCommittedAction[]; eventCursor: number; moreEvents: boolean;
   lastResult: PublicActionResult | null; pending: Pending | null; retryAt: number; fastForward: boolean;
   npcAttempts: number; npcAttemptBudget: number | null;
+  confirmingPending: boolean;
 }
 
+function requestDetail(error: ApiError): string {
+  const info = error.diagnostics;
+  if (!info) return '';
+  const phase = { response: 'waiting for a response', body: 'reading the response body', validation: 'validating the response' }[info.phase];
+  return ` (${info.elapsedMs} ms, ${phase}${info.responseStatus === undefined ? '' : `, HTTP headers ${info.responseStatus}`})`;
+}
 export function errorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Unable to complete the request. Please refresh and try again.';
+  if (error.code === 'committed_state_unavailable') return `An action receipt was received, but the current board could not be refreshed${requestDetail(error)}. The saved request is retained for confirmation.`;
   if (error.status === 401) return 'Your session has ended or the credentials were not accepted. Please log in.';
   if (error.code === 'csrf_rejected' || error.code === 'csrf_not_initialized') return 'Your session needs refreshing. Please log in again or retry the saved request.';
   if (error.code === 'recovery_account_mismatch') return 'Log in with the original account to recover this saved request.';
@@ -30,7 +38,10 @@ export function errorMessage(error: unknown): string {
   if (error.code === 'authentication_disabled' || error.code === 'phase4_disabled') return 'Account services are currently unavailable.';
   if (error.code === 'gameplay_writes_disabled') return 'Gameplay is currently unavailable. You can still view the board.';
   if (error.status === 422 || error.kind === 'client') return 'Check the form values and try again.';
-  if (error.kind === 'timeout' || error.kind === 'network') return 'The connection was interrupted. A submitted move may already have completed.';
+  if (error.kind === 'timeout' || error.kind === 'network') {
+    const reason = error.kind === 'timeout' ? 'The request timed out' : 'The connection was interrupted';
+    return `${reason}${requestDetail(error)}.${error.uncertain ? ' A submitted move may already have completed.' : ''}`;
+  }
   if (error.kind === 'malformed') return 'The service returned an unexpected response. Refresh before continuing.';
   return 'The service is temporarily unavailable. Please try again later.';
 }
@@ -51,6 +62,7 @@ export class GameController {
     filters: {}, cursors: [undefined], gameId: null, game: null, owner: false,
     events: [], eventCursor: 0, moreEvents: false, lastResult: null, pending: null, retryAt: 0, fastForward: false,
     npcAttempts: 0, npcAttemptBudget: null,
+    confirmingPending: false,
   };
   constructor(api = new GameApi()) { this.api = api; }
   getSnapshot = (): AppState => this.state;
@@ -83,9 +95,12 @@ export class GameController {
   private applyEvents(page: PublicEventPage): void {
     const events = new Map(this.state.events.map((event) => [event.revision, event]));
     page.events.forEach((event) => events.set(event.revision, event));
+    // A targeted confirmation page can be ahead of partially loaded history.
+    // Merge its evidence without skipping the unread interval's cursor.
+    const contiguous = page.after_revision <= this.state.eventCursor;
     this.set({ events: [...events.values()].sort((a, b) => a.revision - b.revision),
-      eventCursor: Math.max(this.state.eventCursor, page.next_after_revision),
-      moreEvents: page.next_after_revision >= this.state.eventCursor ? page.has_more : this.state.moreEvents });
+      eventCursor: contiguous ? Math.max(this.state.eventCursor, page.next_after_revision) : this.state.eventCursor,
+      moreEvents: !contiguous || (page.next_after_revision >= this.state.eventCursor ? page.has_more : this.state.moreEvents) });
   }
   private fail(error: unknown, retainPending = false): void {
     this.pause();
@@ -97,7 +112,7 @@ export class GameController {
     this.set({ error: errorMessage(error), session: this.api.currentSession,
       owner: this.ownsCurrentGame(),
       pending: preserve ? this.state.pending : null,
-      retryAt: apiError?.status === 429 ? Date.now() + (apiError.retryAfterMs ?? 60_000) : 0 });
+      retryAt: apiError?.status === 429 ? Date.now() + (apiError.retryAfterMs ?? 60_000) : this.state.retryAt });
   }
   private async run(work: () => Promise<void>, { retry = false, waitForRefresh = true }: {
     retry?: boolean; waitForRefresh?: boolean;
@@ -304,7 +319,8 @@ export class GameController {
     return this.run(async () => {
       if (!this.controls('npc') || !this.state.gameId || !this.state.game) return;
       this.assertNpcBudget();
-      this.savePending({ kind: 'npc', operation: this.api.prepareNpcStep(this.state.gameId, this.state.game.revision!) });
+      this.savePending({ kind: 'npc', operation: this.api.prepareNpcStep(this.state.gameId, this.state.game.revision!),
+        observation: Object.freeze({ actorId: activeParticipant(this.state.game)!.id, turnSequence: this.state.game.turn_sequence }) });
       await this.submitPending();
     }, { waitForRefresh: false });
   }
@@ -358,12 +374,63 @@ export class GameController {
         moreEvents: false, lastResult: null, notice: 'Game created. Share this page to let others watch.' });
       await this.loadEvents();
     } else {
-      const outcome: ActionOutcome = pending.kind === 'human'
-        ? await this.api.humanAction(pending.operation) : await this.api.npcStep(pending.operation, this.countNpcAttempt);
+      let outcome: ActionOutcome;
+      try {
+        outcome = pending.kind === 'human' ? await this.api.humanAction(pending.operation)
+          : await this.api.npcStep(pending.operation, this.countNpcAttempt);
+      } catch (error) {
+        if (pending.kind === 'npc' && error instanceof ApiError && error.uncertain
+            && !['authentication_disabled', 'gameplay_writes_disabled', 'phase4_disabled'].includes(error.code)) {
+          this.pause();
+          try {
+            const issue = error.code === 'committed_state_unavailable'
+              ? `committed receipt; follow-up state read ${error.kind}${requestDetail(error)}`
+              : `${error.kind}${requestDetail(error)}`;
+            if (await this.confirmNpc(pending, issue)) return;
+          } catch { /* Keep the original POST failure as well as the read-check notice. */ }
+        }
+        throw error;
+      }
       this.set({ pending: null, lastResult: outcome.response });
       this.applyGame(outcome.state);
       await this.loadEvents();
     }
+  }
+  private async confirmNpc(pending: Pending & { kind: 'npc' }, originalFailure?: string): Promise<boolean> {
+    const current = () => !this.stopped && this.state.pending === pending && this.state.gameId === pending.operation.gameId;
+    if (!current()) return false;
+    this.pause();
+    this.set({ confirmingPending: true, notice: 'Checking the saved NPC outcome using public history. Fast-forward is paused.' });
+    try {
+      const page = await this.api.findNpcReceipt(pending.operation, pending.observation);
+      if (!current()) return false;
+      if (page) {
+        const game = await this.api.getGame(pending.operation.gameId, { anonymous: true });
+        if (!current()) return false;
+        // PublicGame may omit _id. The API binds reads/cache to the requested
+        // route and rejects contradictory IDs, including on older snapshots.
+        if ((!game._id || game._id.toLowerCase() === pending.operation.gameId)
+            && game.revision != null && game.revision >= page.events[0].revision) {
+          this.applyGame(game);
+          this.applyEvents(page);
+          this.set({ pending: null, lastResult: null, error: null,
+            notice: `NPC move ${page.events[0].revision} was confirmed committed using public history. Fast-forward remains paused.${originalFailure ? ` Original response: ${originalFailure}.` : ''}` });
+          return true;
+        }
+      }
+      this.set({ notice: 'Read-only checks did not confirm the saved NPC operation. The original request remains unresolved; fast-forward is paused.' });
+      return false;
+    } catch (error) {
+      if (current()) this.set({ notice: `Read-only confirmation failed: ${errorMessage(error)} The original request remains saved; fast-forward is paused.`,
+        ...(error instanceof ApiError && error.status === 429 ? { retryAt: Date.now() + (error.retryAfterMs ?? 60_000) } : {}) });
+      throw error;
+    } finally { this.set({ confirmingPending: false }); }
+  }
+  checkPendingNpc(): Promise<void> {
+    return this.run(async () => {
+      const pending = this.state.pending;
+      if (pending?.kind === 'npc') await this.confirmNpc(pending);
+    }, { retry: true });
   }
   retryPending(): Promise<void> {
     return this.run(async () => {

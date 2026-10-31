@@ -85,3 +85,28 @@ human/completion stopping. See [frontend recovery notes](../../frontend/README.m
 No production access, recovery or deployment occurred. The existing production
 NPC request remains unresolved; its tab must be preserved. Production fast-forward
 acceptance remains incomplete, and mandatory G17 LLM commentary remains missing.
+
+Stage F continuation update, 2026-10-31 (user-confirmed production evidence):
+frontend `02aea09`; the existing acceptance game reached revision 7, Cambodia
+conquered Seychelles and is in `post_attack`. The original expected-revision-6
+operation is reconciled by committed history; no retry remains necessary.
+Authentication, creation, human battles/transfers, NPC decisions/conquest,
+persistence/My Games and anonymous viewing are accepted. Live capped fast-forward,
+Pause and boundary observations remain incomplete; the 105-test offline evidence
+is retained. The old 30-attempt balance is unknown, so any new NPC test allowance
+requires separate approval. G17 remains missing; no production test or application
+change was performed for this documentation review.
+
+Stage F response-confirmation patch, local verification (2026-10-31): 141 frontend
+tests passed, 0 failed/skipped (105 retained plus 36 new deterministic cases),
+TypeScript/build and all 40 contract checks passed. Uncertain NPC responses pause
+automation and can be confirmed through an exact anonymous public receipt match
+plus authoritative state, with no replay or extra POST allowance consumed. Actor,
+turn sequence, original revision and canonical action ID checks reject unrelated
+advanced states. Tests cover delayed commits, body failures, history pagination,
+stale responses, retained identity/reauthentication, cap/Pause and failed reads.
+The HTTP deadline remains 20 seconds; sanitized phase/elapsed/header diagnostics
+are added. No backend, rule, NPC strategy, deployment or production changes were
+made. The transport root cause remains unproven. User-provided history confirms
+revision 8, while the production tab still holds expected revision 7; no further
+NPC POST is authorized. Stage F remains OPEN and mandatory G17 remains missing.

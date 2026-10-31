@@ -3,15 +3,21 @@ import type { Parser } from './validation.ts';
 
 export type ErrorKind = 'unauthenticated' | 'forbidden' | 'conflict' | 'rate_limited'
   | 'unavailable' | 'http' | 'network' | 'timeout' | 'malformed' | 'client';
+export interface RequestDiagnostics {
+  readonly elapsedMs: number;
+  readonly phase: 'response' | 'body' | 'validation';
+  readonly responseStatus?: number;
+}
 export class ApiError extends Error {
   readonly kind: ErrorKind;
   readonly status: number | undefined;
   readonly code: string;
   readonly retryAfterMs: number | undefined;
   readonly uncertain: boolean;
+  readonly diagnostics?: RequestDiagnostics;
   latestState?: PublicGame;
   constructor(kind: ErrorKind, options: {
-    status?: number; code?: string; retryAfterMs?: number; uncertain?: boolean;
+    status?: number; code?: string; retryAfterMs?: number; uncertain?: boolean; diagnostics?: RequestDiagnostics;
   } = {}) {
     super(`API request failed: ${kind}`);
     this.name = 'ApiError';
@@ -20,6 +26,7 @@ export class ApiError extends Error {
     this.code = options.code ?? kind;
     this.retryAfterMs = options.retryAfterMs;
     this.uncertain = options.uncertain ?? false;
+    this.diagnostics = options.diagnostics ? Object.freeze({ ...options.diagnostics }) : undefined;
   }
 }
 
@@ -48,6 +55,7 @@ export interface HttpOptions {
 interface RequestOptions<T> {
   readonly method?: 'GET' | 'POST'; readonly body?: unknown;
   readonly headers?: Record<string, string>; readonly parse: Parser<T>;
+  readonly anonymous?: boolean;
 }
 
 export class HttpClient {
@@ -67,6 +75,9 @@ export class HttpClient {
     }
     const method = options.method ?? 'GET';
     const mutation = method === 'POST';
+    const started = performance.now();
+    let phase: RequestDiagnostics['phase'] = 'response';
+    let responseStatus: number | undefined;
     const controller = new AbortController();
     let timedOut = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -83,9 +94,11 @@ export class HttpClient {
       if (body !== undefined) headers['Content-Type'] = 'application/json';
       // The browser owns Origin and Cookie. Never synthesize them in app code.
       const response = await this.fetcher(`/api${path}`, {
-        method, headers, body, credentials: 'include', cache: 'no-store',
+        method, headers, body, credentials: options.anonymous ? 'omit' : 'include', cache: 'no-store',
         redirect: 'error', signal: controller.signal,
       });
+      responseStatus = response.status;
+      phase = 'body';
       if (!response.ok) {
         let code: string | undefined;
         try {
@@ -101,24 +114,37 @@ export class HttpClient {
         });
       }
       let value: unknown;
-      try {
-        if (response.status === 204) value = undefined;
-        else {
-          const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
-          if (!(contentType === 'application/json' || contentType?.endsWith('+json'))) throw new Error();
-          value = await response.json();
+      if (response.status !== 204) {
+        const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
+        if (!(contentType === 'application/json' || contentType?.endsWith('+json'))) {
+          throw new ApiError('malformed', { status: response.status, uncertain: mutation });
         }
-        return options.parse(value);
-      } catch {
+        try { value = await response.json(); }
+        catch (cause) {
+          if (cause instanceof TypeError || cause instanceof DOMException && cause.name === 'AbortError') {
+            throw new ApiError(timedOut ? 'timeout' : 'network', { uncertain: mutation });
+          }
+          throw new ApiError('malformed', { status: response.status, uncertain: mutation });
+        }
+      }
+      phase = 'validation';
+      try { return options.parse(value); }
+      catch {
         throw new ApiError('malformed', { status: response.status, uncertain: mutation });
       }
     };
     try {
       return await Promise.race([execute(), deadline]);
     } catch (cause) {
-      const error = cause instanceof ApiError ? cause : new ApiError(timedOut ? 'timeout' : 'network', {
+      const base = cause instanceof ApiError ? cause : new ApiError(timedOut ? 'timeout' : 'network', {
         uncertain: mutation,
       });
+      // Header status is diagnostic only: a body timeout must not become a 409
+      // or otherwise trigger protocol decisions for a completed HTTP response.
+      const error = new ApiError(base.kind, { status: base.status, code: base.code,
+        retryAfterMs: base.retryAfterMs, uncertain: base.uncertain,
+        diagnostics: { elapsedMs: Math.round(performance.now() - started), phase,
+          ...(responseStatus === undefined ? {} : { responseStatus }) } });
       this.onError?.(error);
       throw error;
     } finally {
