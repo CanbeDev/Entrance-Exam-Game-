@@ -3,8 +3,9 @@ import type { ActionCommand, ActionOutcome, CountryCatalog, CreationOperation, C
   HumanOperation, NpcOperation, PublicActionResult, PublicCommittedAction, PublicEventPage, PublicGame, PublicGameList, Session } from '../api/index.ts';
 import { activeParticipant, playable } from './view.ts';
 
-type Pending = { kind: 'create'; operation: CreationOperation } | { kind: 'human'; operation: HumanOperation }
+type PendingOperation = { kind: 'create'; operation: CreationOperation } | { kind: 'human'; operation: HumanOperation }
   | { kind: 'npc'; operation: NpcOperation };
+type Pending = PendingOperation & { readonly account: Session['user'] };
 export interface AppState {
   ready: boolean; busy: boolean; session: Session | null; error: string | null; notice: string | null;
   refreshing: boolean; refreshError: string | null;
@@ -12,12 +13,16 @@ export interface AppState {
   cursors: Array<string | undefined>; gameId: string | null; game: PublicGame | null; owner: boolean;
   events: readonly PublicCommittedAction[]; eventCursor: number; moreEvents: boolean;
   lastResult: PublicActionResult | null; pending: Pending | null; retryAt: number; fastForward: boolean;
+  npcAttempts: number; npcAttemptBudget: number | null;
 }
 
 export function errorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Unable to complete the request. Please refresh and try again.';
   if (error.status === 401) return 'Your session has ended or the credentials were not accepted. Please log in.';
   if (error.code === 'csrf_rejected' || error.code === 'csrf_not_initialized') return 'Your session needs refreshing. Please log in again or retry the saved request.';
+  if (error.code === 'recovery_account_mismatch') return 'Log in with the original account to recover this saved request.';
+  if (error.code === 'recovery_not_owned') return 'Game ownership could not be verified. The saved request remains locked.';
+  if (error.code === 'npc_budget_exhausted') return 'The NPC acceptance limit has been reached. No further NPC request was sent.';
   if (error.status === 403) return 'You do not have permission to perform this action.';
   if (error.code === 'username_unavailable') return 'That username is unavailable. Choose another or log in.';
   if (error.status === 409) return 'The game changed or this move is no longer valid. The latest available board has been loaded; review it before choosing again.';
@@ -35,6 +40,7 @@ export class GameController {
   readonly api: GameApi;
   private listeners = new Set<() => void>();
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private forwardGeneration = 0;
   private stopped = false;
   private readGeneration = 0;
   private backgroundTask: Promise<void> | null = null;
@@ -44,6 +50,7 @@ export class GameController {
     refreshing: false, refreshError: null,
     filters: {}, cursors: [undefined], gameId: null, game: null, owner: false,
     events: [], eventCursor: 0, moreEvents: false, lastResult: null, pending: null, retryAt: 0, fastForward: false,
+    npcAttempts: 0, npcAttemptBudget: null,
   };
   constructor(api = new GameApi()) { this.api = api; }
   getSnapshot = (): AppState => this.state;
@@ -80,12 +87,12 @@ export class GameController {
       eventCursor: Math.max(this.state.eventCursor, page.next_after_revision),
       moreEvents: page.next_after_revision >= this.state.eventCursor ? page.has_more : this.state.moreEvents });
   }
-  private fail(error: unknown): void {
+  private fail(error: unknown, retainPending = false): void {
     this.pause();
     const apiError = error instanceof ApiError ? error : undefined;
     if (apiError?.latestState) this.applyGame(apiError.latestState);
     if (!this.api.currentSession || apiError?.status === 403 && apiError.code !== 'csrf_rejected') this.clearOwner();
-    const preserve = apiError?.uncertain && !['authentication_disabled', 'gameplay_writes_disabled', 'phase4_disabled'].includes(apiError.code)
+    const preserve = retainPending || apiError?.uncertain && !['authentication_disabled', 'gameplay_writes_disabled', 'phase4_disabled'].includes(apiError.code)
       || apiError?.status === 429 || apiError?.code === 'csrf_rejected';
     this.set({ error: errorMessage(error), session: this.api.currentSession,
       owner: this.ownsCurrentGame(),
@@ -107,7 +114,7 @@ export class GameController {
         this.set({ refreshError: null });
         await work();
       }
-    } catch (error) { this.fail(error); }
+    } catch (error) { this.fail(error, retry); }
     finally { this.syncSession(); this.set({ busy: false }); }
   }
   async initialize(id: string | null): Promise<void> {
@@ -121,6 +128,10 @@ export class GameController {
     this.set({ ready: true });
   }
   async authenticate(credentials: Credentials, register: boolean): Promise<void> {
+    if (this.state.pending) {
+      if (!register) await this.reauthenticate(credentials);
+      return;
+    }
     await this.run(async () => {
       this.clearOwner();
       this.set({ games: null });
@@ -132,6 +143,24 @@ export class GameController {
       if (this.state.gameId) await this.checkOwner(this.state.gameId);
       else await this.loadDashboard();
     });
+  }
+  private async reauthenticate(credentials: Credentials): Promise<void> {
+    await this.run(async () => {
+      const pending = this.state.pending;
+      if (!pending) return;
+      this.clearOwner();
+      const session = await this.api.login(credentials);
+      if (this.stopped) return;
+      if (session.user.id !== pending.account.id) {
+        // Reject the authenticated account identity, not a username comparison.
+        // Logout clears the client session even if server revocation fails.
+        try { await this.api.logout(); } catch { /* Keep the recovery error and lock. */ }
+        throw new ApiError('forbidden', { status: 403, code: 'recovery_account_mismatch' });
+      }
+      this.set({ session });
+      await this.verifyPendingOwner(pending);
+      if (!this.stopped) this.set({ notice: 'Logged in to the original account. Use Retry saved request to continue; no game action was submitted.' });
+    }, { retry: true });
   }
   async logout(): Promise<void> {
     this.pause();
@@ -255,7 +284,7 @@ export class GameController {
   create(body: { game_name: string; starting_country_id: string }): Promise<void> {
     return this.run(async () => {
       if (!this.api.currentSession) return;
-      this.set({ pending: { kind: 'create', operation: this.api.prepareCreation(body) } });
+      this.savePending({ kind: 'create', operation: this.api.prepareCreation(body) });
       await this.submitPending();
     }, { waitForRefresh: false });
   }
@@ -267,17 +296,58 @@ export class GameController {
     return this.run(async () => {
       if (!this.controls('human') || !this.state.gameId || !this.state.game) return;
       const command = { action_id: crypto.randomUUID(), expected_revision: this.state.game.revision!, action };
-      this.set({ pending: { kind: 'human', operation: this.api.prepareAction(this.state.gameId, command) } });
+      this.savePending({ kind: 'human', operation: this.api.prepareAction(this.state.gameId, command) });
       await this.submitPending();
     }, { waitForRefresh: false });
   }
   stepNpc(): Promise<void> {
     return this.run(async () => {
       if (!this.controls('npc') || !this.state.gameId || !this.state.game) return;
-      this.set({ pending: { kind: 'npc', operation: this.api.prepareNpcStep(this.state.gameId, this.state.game.revision!) } });
+      this.assertNpcBudget();
+      this.savePending({ kind: 'npc', operation: this.api.prepareNpcStep(this.state.gameId, this.state.game.revision!) });
       await this.submitPending();
     }, { waitForRefresh: false });
   }
+  private savePending(operation: PendingOperation): void {
+    const account = this.api.currentSession?.user;
+    if (!account) throw new ApiError('unauthenticated', { status: 401 });
+    this.set({ pending: Object.freeze({ ...operation, account }) });
+  }
+  private pendingAccount(pending: Pending): void {
+    const session = this.api.currentSession;
+    if (!session) throw new ApiError('unauthenticated', { status: 401 });
+    if (session.user.id !== pending.account.id) {
+      throw new ApiError('forbidden', { status: 403, code: 'recovery_account_mismatch' });
+    }
+  }
+  private async verifyPendingOwner(pending: Pending): Promise<void> {
+    this.pendingAccount(pending);
+    if (pending.kind === 'create') return; // The original account owns a creation; no game exists yet.
+    if (pending.operation.gameId !== this.state.gameId) {
+      throw new ApiError('forbidden', { status: 403, code: 'recovery_not_owned' });
+    }
+    await this.checkOwner(pending.operation.gameId);
+    if (this.stopped) return;
+    this.pendingAccount(pending);
+    if (!this.ownsCurrentGame()) throw new ApiError('forbidden', { status: 403, code: 'recovery_not_owned' });
+  }
+  configureNpcBudget(limit: number): void {
+    if (this.stopped || this.state.busy || this.state.fastForward) return;
+    if (!Number.isSafeInteger(limit) || limit < 0) {
+      this.set({ error: 'Enter a whole number of NPC attempts, zero or more.' }); return;
+    }
+    // An explicit change never resets attempts already dispatched on this page.
+    this.set({ npcAttemptBudget: limit, notice: 'NPC acceptance limit set. No game action was submitted.' });
+  }
+  private assertNpcBudget(): void {
+    if (this.state.npcAttemptBudget !== null && this.state.npcAttempts >= this.state.npcAttemptBudget) {
+      throw new ApiError('client', { code: 'npc_budget_exhausted' });
+    }
+  }
+  private countNpcAttempt = (): void => {
+    this.assertNpcBudget();
+    this.set({ npcAttempts: this.state.npcAttempts + 1 });
+  };
   private async submitPending(): Promise<void> {
     const pending = this.state.pending;
     if (!pending) return;
@@ -289,7 +359,7 @@ export class GameController {
       await this.loadEvents();
     } else {
       const outcome: ActionOutcome = pending.kind === 'human'
-        ? await this.api.humanAction(pending.operation) : await this.api.npcStep(pending.operation);
+        ? await this.api.humanAction(pending.operation) : await this.api.npcStep(pending.operation, this.countNpcAttempt);
       this.set({ pending: null, lastResult: outcome.response });
       this.applyGame(outcome.state);
       await this.loadEvents();
@@ -297,19 +367,33 @@ export class GameController {
   }
   retryPending(): Promise<void> {
     return this.run(async () => {
-      if (!this.state.session) return;
+      const pending = this.state.pending;
+      if (!pending) return;
+      this.pendingAccount(pending);
+      if (pending.kind === 'npc') this.assertNpcBudget();
+      // Preparation cannot reconcile an earlier write. Any failure here retains
+      // the same saved operation, account and mutation lock, including on 401.
       await this.api.refreshCsrf();
+      if (this.stopped) return;
+      await this.verifyPendingOwner(pending);
+      if (this.stopped) return;
       await this.submitPending();
     }, { retry: true, waitForRefresh: false });
   }
-  pause(): void { clearTimeout(this.timer); this.set({ fastForward: false }); }
+  pause(): void { this.forwardGeneration++; clearTimeout(this.timer); this.timer = undefined; this.set({ fastForward: false }); }
   async fastForward(): Promise<void> {
-    if (!this.controls('npc') || this.state.busy || this.state.pending) return;
+    if (this.stopped || this.state.fastForward || !this.controls('npc') || this.state.busy || this.state.pending) return;
+    const generation = ++this.forwardGeneration;
     this.set({ fastForward: true });
     const next = async (): Promise<void> => {
+      if (generation !== this.forwardGeneration) return;
       if (!this.state.fastForward || !this.controls('npc')) { this.pause(); return; }
       await this.stepNpc();
+      if (generation !== this.forwardGeneration) return;
       if (!this.state.fastForward || this.state.error || !this.controls('npc')) { this.pause(); return; }
+      if (this.state.npcAttemptBudget !== null && this.state.npcAttempts >= this.state.npcAttemptBudget) {
+        this.pause(); this.set({ notice: 'NPC acceptance limit reached. Fast-forward is paused.' }); return;
+      }
       this.timer = setTimeout(() => { void next(); }, 650);
     };
     await next();

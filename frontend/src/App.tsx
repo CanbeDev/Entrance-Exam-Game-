@@ -30,6 +30,8 @@ export function App() {
     return () => window.removeEventListener('beforeunload', beforeUnload);
   }, [state.pending]);
   const disabled = !state.ready || state.busy || !!state.pending || now < state.retryAt;
+  const recoveryLogin = !!state.pending && state.session?.user.id !== state.pending.account.id;
+  const npcLimitReached = state.npcAttemptBudget !== null && state.npcAttempts >= state.npcAttemptBudget;
   function open(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -49,9 +51,30 @@ export function App() {
     {now < state.retryAt && <p role="status">Try again in {Math.ceil((state.retryAt - now) / 1000)} seconds.</p>}
     {state.pending && !state.busy && <section aria-label="Unresolved request">
       <p>The submitted request is saved in this page. Retry the same request before leaving; a new request could repeat an operation.</p>
-      <button disabled={now < state.retryAt} onClick={() => void controller.retryPending()}>Retry saved request</button>
+      <p>Original account: {state.pending.account.username}.</p>
+      {state.pending.kind !== 'create' && <p>Saved {state.pending.kind === 'npc' ? 'NPC' : 'human'} request:
+        {' '}game {state.pending.operation.gameId}, expected revision {state.pending.operation.command.expected_revision}.</p>}
+      <button disabled={now < state.retryAt || recoveryLogin || state.pending.kind === 'npc' && npcLimitReached}
+        onClick={() => void controller.retryPending()}>Retry saved request</button>
     </section>}
-    {state.ready && !state.session && <AuthForm disabled={disabled} onSubmit={(credentials, register) => void controller.authenticate(credentials, register)} />}
+    {state.ready && (!state.session || recoveryLogin) && <AuthForm key={state.pending ? 'recovery' : 'login'}
+      recoveryUsername={state.pending?.account.username}
+      disabled={!state.ready || state.busy || now < state.retryAt}
+      onSubmit={(credentials, register) => void controller.authenticate(credentials, register)} />}
+    {state.game && (state.owner || state.pending?.kind === 'npc') && <details>
+      <summary>Optional NPC acceptance limit</summary>
+      <p>NPC POST attempts on this page: {state.npcAttempts}. Limit: {state.npcAttemptBudget ?? 'not set'}.</p>
+      <form onSubmit={(event) => {
+        event.preventDefault();
+        controller.configureNpcBudget(Number(new FormData(event.currentTarget).get('npc_limit')));
+      }}><fieldset disabled={state.busy || state.fastForward}>
+        <legend>Maximum NPC POST attempts on this page</legend>
+        <label>Limit <input name="npc_limit" type="number" required min={0} step={1} defaultValue={state.npcAttemptBudget ?? ''} /></label>
+        <button type="submit">Set limit</button>
+      </fieldset></form>
+      <p>Includes individual actions and retries. Set this within the approved remaining allowance.
+        Changing the limit keeps the current count; reloading resets it.</p>
+    </details>}
     {!state.gameId && <>
       {state.session && <Dashboard state={state} controller={controller} disabled={disabled} />}
       <section aria-labelledby="watch-title"><h2 id="watch-title">Watch a shared game</h2>

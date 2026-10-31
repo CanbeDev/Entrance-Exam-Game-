@@ -135,6 +135,35 @@ may have committed. Follow-up reads do not authorize a fresh mutation identity.
 Failed logout clears local state but propagates failure; it does not prove server
 revocation. Timeouts cover response parsing as well as fetch.
 
+## Saved-request recovery and NPC acceptance limit
+
+Local verification: 105 automated tests passed (75 existing plus 30 new), with
+TypeScript, the production build and all 40 OpenAPI component checks passing.
+This does not establish production recovery or browser acceptance of the patch.
+
+An outstanding operation retains its original account, game, payload and action
+ID/key/revision. Failed retry preparation, including expired sessions, keeps the
+operation and blocks fresh mutations. Recovery login accepts only the original
+account ID, checks ownership and never submits the operation. Use **Retry saved
+request** explicitly; it refreshes CSRF and checks account/ownership again.
+An unconfirmed retry rejection keeps the lock for review. Do not reload or leave
+while a saved request remains: it exists only in page memory. A new deployment
+does not migrate the pending operation from an already-open production tab.
+
+On an owned game, open **Optional NPC acceptance limit** and enter a maximum
+number of NPC POST attempts for this page. Zero blocks attempts; an unset limit
+preserves normal fast-forward. Manual steps, fast-forward and retries share the
+counter. CSRF/ownership preparation does not consume an attempt. Fast-forward
+stops at the limit, a human turn, completion, Pause or an error. Pause lets an
+already-submitted action settle and prevents further scheduling.
+
+Changing the limit never resets attempts; reload does. This is a local acceptance
+aid, not a server-enforced lifetime quota. Reconcile earlier attempts, including
+failed attempts/retries, before setting a limit within the approved remaining
+30-attempt Stage F allowance. Never assume 30 attempts remain. There is no
+five-second manual Pause requirement. Production recovery/testing and deployment
+still require separate approval; use the offline smoke fixture for local checks.
+
 ## Development proxy
 
 `npm.cmd run dev` serves loopback only. `/api/*` defaults to a loopback API at

@@ -74,3 +74,14 @@ fixture. Automated Chrome testing was blocked because Computer Use could not
 confidently determine Chrome's URL to enforce policy; no automated browser pass
 is claimed. No production or real backend/database testing occurred during this
 frontend acceptance. G17 and Stage E/F/submission remain unmet.
+
+Stage F recovery reliability, local-only evidence (2026-10-30): 105 frontend tests
+passed (75 retained plus 30 recovery/UI regressions), TypeScript/Vite build and
+40-component contract checks passed. Saved operations retain their original
+account and immutable payload through failed retry preparation/reauthentication;
+explicit retries verify account/ownership. Tests cover CSRF 401/503/timeout,
+same-account recovery, replay identity, optional NPC attempt limits, Pause and
+human/completion stopping. See [frontend recovery notes](../../frontend/README.md#saved-request-recovery-and-npc-acceptance-limit).
+No production access, recovery or deployment occurred. The existing production
+NPC request remains unresolved; its tab must be preserved. Production fast-forward
+acceptance remains incomplete, and mandatory G17 LLM commentary remains missing.

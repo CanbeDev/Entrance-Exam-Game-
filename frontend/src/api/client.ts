@@ -200,11 +200,13 @@ export class GameApi {
     this.inFlight.add(key);
     try { return await operation(); } finally { this.inFlight.delete(key); }
   }
-  private async mutate(id: string, path: string, body: unknown): Promise<ActionOutcome> {
+  private async mutate(id: string, path: string, body: unknown, beforePost?: () => void): Promise<ActionOutcome> {
     return this.serial(id, async () => {
       try {
+        const headers = this.csrfHeaders();
+        beforePost?.();
         const response = await this.http.request(path, { method: 'POST', body,
-          headers: this.csrfHeaders(), parse: component('PublicActionResult') });
+          headers, parse: component('PublicActionResult') });
         // Keep route identity separately: receipt.state can legitimately omit _id.
         if (response.state.revision == null) throw new ApiError('malformed', { uncertain: true });
         const previous = this.states.get(id);
@@ -226,8 +228,8 @@ export class GameApi {
     const prepared = this.prepareAction(operation.gameId, operation.command);
     return this.mutate(prepared.gameId, `/games/${prepared.gameId}/actions`, prepared.command);
   }
-  npcStep(operation: NpcOperation): Promise<ActionOutcome> {
+  npcStep(operation: NpcOperation, beforePost?: () => void): Promise<ActionOutcome> {
     const prepared = this.prepareNpcStep(operation.gameId, operation.command.expected_revision);
-    return this.mutate(prepared.gameId, `/games/${prepared.gameId}/npc-steps`, prepared.command);
+    return this.mutate(prepared.gameId, `/games/${prepared.gameId}/npc-steps`, prepared.command, beforePost);
   }
 }
