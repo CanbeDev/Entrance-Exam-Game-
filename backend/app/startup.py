@@ -1,6 +1,7 @@
 """Managed read-only readiness and client lifecycle; never provisions storage."""
 from contextlib import asynccontextmanager
 import logging
+import os
 
 from pymongo import MongoClient
 from starlette.concurrency import run_in_threadpool
@@ -56,6 +57,7 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
     async def lifespan(app):
         client = None
         app.state.phase4 = None
+        app.state.commentary = None
         app.state.mongo_client = None
         app.state.game_reader = None
         app.state.phase4_readiness = "starting"
@@ -87,11 +89,18 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
             context, reader, readiness = await run_in_threadpool(initialize)
             app.state.mongo_client, app.state.game_reader = client, reader
             app.state.phase4, app.state.phase4_readiness = context, readiness
+            # Optional narration never participates in readiness or game commits.
+            from app.repositories.commentary_repository import MongoCommentaryRepository
+            from app.services.commentary_service import CommentaryService
+            from app.services.groq_commentary import GroqNarrator
+            app.state.commentary = CommentaryService(context.games, MongoCommentaryRepository(client[settings.database_name]),
+                GroqNarrator(os.environ.get("GROQ_API_KEY"), os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")))
             if readiness != "ready":
                 logger.warning("phase4_readiness=%s; writes remain disabled", readiness)
             yield
         finally:
             app.state.phase4 = None
+            app.state.commentary = None
             app.state.mongo_client = None
             app.state.game_reader = None
             app.state.phase4_readiness = "stopped"

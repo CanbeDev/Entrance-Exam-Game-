@@ -1,11 +1,12 @@
 import type {
   ActionCommand, ActionOutcome, CountryCatalog, Credentials, CsrfResponse, EventFilters,
   GameFilters, GameSetupRequest, HealthResponse, HomeResponse, LoginResponse, NpcStepRequest,
-  PublicEventPage, PublicGame, PublicGameList, Session, UserPublic,
+  PublicEventPage, PublicGame, PublicGameList, Session, UserPublic, BattleCommentary,
 } from './contracts.ts';
 import { ApiError, HttpClient } from './http.ts';
 import type { HttpOptions } from './http.ts';
 import { catalogSchema, component, csrfSchema, loginSchema, parser } from './validation.ts';
+import { BattleCommentaryRequests } from './commentary.ts';
 
 export interface CreationOperation { readonly key: string; readonly body: GameSetupRequest }
 export interface HumanOperation { readonly gameId: string; readonly command: ActionCommand }
@@ -56,8 +57,17 @@ export class GameApi {
   private readonly states = new Map<string, PublicGame>();
   private readonly inFlight = new Set<string>();
   private authBusy = false;
+  private readonly commentary: BattleCommentaryRequests;
   constructor(options: HttpOptions = {}) {
     this.http = new HttpClient(options);
+    this.commentary = new BattleCommentaryRequests(
+      (id, revision) => this.http.request(`/games/${id}/commentary/${revision}`, {
+        parse: component('BattleCommentary'), anonymous: true,
+      }),
+      (id, revision) => this.http.request(`/games/${id}/commentary/${revision}`, {
+        method: 'POST', body: {}, headers: this.csrfHeaders(), parse: component('BattleCommentary'),
+      }),
+    );
     this.http.onError = (error) => {
       if (error.status === 401) this.clearSession();
       if (error.code === 'csrf_rejected') this.#csrf = undefined;
@@ -85,6 +95,15 @@ export class GameApi {
   }
   countries(): Promise<CountryCatalog> {
     return this.http.request('/countries', { parse: parser<CountryCatalog>(catalogSchema) });
+  }
+  battleCommentary(id: string, revision: number, refresh = false): Promise<BattleCommentary> {
+    return this.commentary.get(gameId(id), integer(revision, 1), refresh);
+  }
+  generateBattleCommentary(id: string, revision: number, permitted: () => boolean = () => true): Promise<BattleCommentary> {
+    if (!this.currentSession) return Promise.reject(new ApiError('unauthenticated', { status: 401 }));
+    const accountId = this.currentSession.user.id;
+    return this.commentary.request(gameId(id), integer(revision, 1),
+      () => permitted() && this.currentSession?.user.id === accountId);
   }
   register(credentials: Credentials): Promise<UserPublic> {
     const body = cloneFrozen(validate(component('Credentials'), credentials));

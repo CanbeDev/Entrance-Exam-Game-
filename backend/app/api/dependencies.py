@@ -18,6 +18,8 @@ def phase4_path(path: str) -> bool:
                 "/games", "/me/games"}:
         return True
     pieces = path.strip("/").split("/")
+    if len(pieces) == 4 and pieces[0] == "games" and pieces[2] == "commentary":
+        return True
     return len(pieces) == 3 and pieces[0] == "games" and pieces[2] in {"actions", "npc-steps", "events"}
 
 

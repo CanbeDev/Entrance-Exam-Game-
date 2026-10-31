@@ -98,7 +98,13 @@ export function App() {
           act={(action) => void controller.act(action)} step={() => void controller.stepNpc()}
           fast={() => void controller.fastForward()} pause={() => controller.pause()} />
       </div>
-      <History game={state.game} events={state.events} latest={state.lastResult} more={state.moreEvents}
+      <History key={`${state.gameId}:${state.session?.user.id ?? 'spectator'}`} game={state.game} events={state.events} latest={state.lastResult} more={state.moreEvents}
+        api={controller.api} gameId={state.gameId!} canGenerateCommentary={state.owner && !!state.session && !disabled && !state.fastForward}
+        commentaryAccountId={state.owner ? state.session?.user.id ?? null : null}
+        liveCommentaryAllowed={state.owner && !!state.session && !state.pending && !state.busy}
+        canStartCommentary={() => { const current = controller.getSnapshot();
+          return current.gameId === state.gameId && current.session?.user.id === state.session?.user.id
+            && current.owner && !!current.session && !current.pending && !current.busy; }}
         disabled={disabled || state.fastForward} loadMore={() => void controller.moreHistory()} />
     </>}
     {state.ready && state.error && !state.pending && <button disabled={disabled} onClick={() => void controller.initialize(state.gameId)}>Reconnect</button>}

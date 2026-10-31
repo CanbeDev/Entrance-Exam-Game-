@@ -1,5 +1,16 @@
 # Frontend API contract
 
+Local commentary extension, 2026-10-31: the current OpenAPI export contains 15
+paths, 16 operations and 43 components. Added public
+`GET /games/{game_id}/commentary/{revision}` and owner/session/Origin/CSRF-protected
+`POST` on that same path with JSON `{}`. Both return `BattleCommentary` derived
+from an existing committed dice receipt; neither changes game revisions.
+See [commentary contract and rollout](PHASE4_GROQ_COMMENTARY.md) for fields,
+deduplication, provider limits, fallbacks and deployment boundaries. The existing
+Vercel `/api` rewrite applies unchanged. The original baseline/export instructions
+below are retained as historical context; they do not claim this local extension
+is deployed or alter current production approvals.
+
 Source commit: e5a31990c440c4a1106bac093597656738e0a8ac. Prepared offline on 2026-10-29. OpenAPI 3.1.0; 14 schema paths / 14 schema operations. Canonical export: [openapi.json](openapi.json).
 
 This is a contract of the committed backend, supplemented by the actual route, service, repository and model code.

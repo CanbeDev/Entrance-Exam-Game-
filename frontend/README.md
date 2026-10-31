@@ -232,5 +232,40 @@ Keep origins `[]` and both protected-write gates false until separate approval.
 Stage E enables auth only; gameplay stays false. Follow
 [Stage E](../docs/STAGE_E_AUTH_ACTIVATION.md). Stage F gameplay uses new owned
 games after authentication passes. The functional frontend and visible fast-forward
-are implemented locally. Production acceptance, GroqCloud commentary and the
-submission package remain mandatory later work.
+are implemented locally. Production acceptance of gameplay and GroqCloud
+commentary, and the submission package, remain mandatory later work.
+
+## AI battle commentary
+
+Committed dice-exchange receipts have an **AI Battle Commentary** area alongside
+the original dice, losses, ownership events and NPC explanation. Public reads
+load saved narration. The game's authenticated owner can select **Generate AI
+commentary**. **AI commentary for new battles** defaults on for the authenticated
+owner, during both human play and NPC fast-forward. The owner can turn it off.
+Opening saved history or reloading starts at the current revision, so historical
+exchanges do not generate new billable work. New receipts use an independent
+cursor, separate from history pagination; there is no lifetime 16-exchange cutoff.
+The scheduler reads at most 100 receipts and awaits one generation at a time.
+It retains only 64 recent live displays; older narration stays retrievable from
+saved history. Backend admission limits still apply to every new generation.
+Turning it off cancels queued narration; a submitted request may finish. Account,
+game and ownership checks prevent queued requests crossing access boundaries.
+
+Narration has its own loading/error state and separate queues (two reads, one
+generation request). It never sets gameplay busy, consumes an NPC attempt,
+changes pending-operation identity, or resumes fast-forward. Requests share a
+bounded per-page cache keyed by game and committed revision. Concurrent requests
+for one receipt are deduplicated. After an uncertain response, **Check saved
+commentary** performs only public GETs; the client never automatically retries
+the billable request. The backend's persistent claim protects across reloads.
+Counters persist across restarts: 100 global admissions per UTC day, 30 per game
+per UTC day, 10 globally per minute, 60 globally per hour and 20 per account per
+hour. A denied admission has a saved deterministic fallback and no Groq call.
+Spectators can also use **Check saved commentary** after an initial not-generated
+response, to retrieve narration completed later without a reload or billable POST.
+
+Groq output is labelled LLM-generated narration. Missing/unavailable narration
+shows a separately labelled deterministic battle summary. Spectators cannot
+request generation. No provider key or provider environment variable belongs in
+this frontend. Production provider availability and deployment acceptance remain
+separate checks; local tests use deterministic mocks only.

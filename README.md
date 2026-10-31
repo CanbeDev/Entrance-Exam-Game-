@@ -11,17 +11,19 @@ NPCs to control ten countries.
 - Saved games with search, filtering, pagination and resume.
 - Country selection, battles, reinforcements and soldier transfers.
 - Strategic NPCs, visible fast-forward and battle history.
+- GroqCloud battle commentary with saved narration and a deterministic fallback.
 
-These features are implemented locally. Production activation and mandatory
-GroqCloud battle commentary remain pending.
+Commentary is implemented locally and awaits deployment and real-provider
+acceptance. Production fast-forward acceptance remains incomplete.
 
 ## Technology Stack
 
 | Component | Technology |
 | --- | --- |
-| Frontend | React, TypeScript and Vite; planned Vercel hosting |
+| Frontend | React, TypeScript and Vite; hosted on Vercel |
 | Backend | Python 3.14, FastAPI and Pydantic; hosted on Render |
 | Database | MongoDB Atlas |
+| Battle narration | GroqCloud, called only by the backend |
 
 ## Project Structure
 
@@ -51,13 +53,14 @@ The real backend requires private process settings `MONGODB_URI` and
 
 ## Deployment
 
-Render hosts the API. Vercel hosting is planned with root directory `frontend`,
+Render hosts the API. Vercel uses root directory `frontend`,
 Vite preset, build command `npm run build` and output directory `dist`.
 The Vercel `/api/*` proxy forwards to Render after removing `/api`.
 
-Production authentication and gameplay writes remain disabled. Activation and
-HTTPS cookie/Origin/CSRF verification require separate approval. Keep credentials
-server-side; never commit them or expose them through frontend variables.
+Production authentication and gameplay writes are enabled, as confirmed by the
+project owner. Further gameplay tests and deployments require separate approval.
+Keep credentials server-side; never expose them through frontend variables.
+See [commentary configuration and rollout](docs/PHASE4_GROQ_COMMENTARY.md).
 
 ## Testing
 
@@ -73,3 +76,6 @@ Phase 3 passed 54 automated tests, TypeScript checks and the production build.
 The user reported successful core manual browser acceptance against the offline
 fixture. Automated Chrome testing was blocked by a browser URL policy check.
 Production acceptance remains pending. See [backend testing](backend/docs/TESTING.md).
+
+The commentary patch passes 167 frontend tests and 43 contract checks, with
+TypeScript/build checks passing. Mocked provider tests do not prove live Groq delivery.

@@ -7,6 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.countries import router as countries_router
 from app.api.auth import router as auth_router
 from app.api.games import router as games_router
+from app.api.commentary import router as commentary_router
 from app.api.dependencies import Phase4SecurityMiddleware, install_security_handlers
 from app.security.environment import load_application_settings
 from app.services.public_game_service import public_game
@@ -38,6 +39,7 @@ def create_app(*, settings_loader=load_application_settings, client_factory=crea
     application = FastAPI(title="Geopolitics Game API", description="UCT INF4001N Entrance Exam 2027",
                           lifespan=application_lifespan(settings_loader, client_factory))
     application.state.phase4 = None
+    application.state.commentary = None
     application.state.mongo_client = None
     application.state.game_reader = None
     application.state.phase4_readiness = "not_started"
@@ -47,6 +49,7 @@ def create_app(*, settings_loader=load_application_settings, client_factory=crea
     install_security_handlers(application)
     application.include_router(auth_router)
     application.include_router(games_router)
+    application.include_router(commentary_router)
 
     @application.get("/")
     def home():

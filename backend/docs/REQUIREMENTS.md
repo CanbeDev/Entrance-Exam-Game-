@@ -18,7 +18,7 @@ The existing IDs are kept for traceability. Test results are in [Testing](TESTIN
 | G11-G14 / 4 | Reinforcements from round two, elimination, ten-country victory and unrestricted geography. Turn/ownership/full-match tests. |
 | G15 / 2, 4-5 | Phase 3 board, battle events/dice/losses and NPC explanations with visible serialized fast-forward implemented. Automated tests and user-reported core manual fixture acceptance passed; real match acceptance remains. |
 | G16 / 5 | Backend strategy/controller tests; Phase 3 stepping and plain-text decision/explanation history implemented. Core manual fixture acceptance passed as reported by the user; production presentation remains unverified. |
-| G17 / 4 | LLM battle commentary. Not implemented. |
+| G17 / 4 | GroqCloud battle commentary implemented locally from committed human/NPC dice receipts; separate owner-authorized generation, public saved retrieval and labeled fallback. See [commentary implementation](../../docs/PHASE4_GROQ_COMMENTARY.md). Mocked tests are local evidence; deployed real-provider/browser acceptance remains required. |
 | G18 / 5 | Backend security tests and Phase 3 auth, public viewing and verified-owner-only control UI implemented. Automated tests and user-reported core manual fixture acceptance passed. Live authorization acceptance and production activation remain. |
 | T01-T03 / 5 | FastAPI/MongoDB/Render exist; local React/Vite API/proxy and functional interface implemented with user-reported core manual fixture acceptance. Production frontend deployment/origin and browser acceptance remain. |
 | S01 / 6 | Amathuba submission: source ZIP, database access, deployed URL, application credentials and instructions. Packaging remains; share credentials privately. |
@@ -29,8 +29,9 @@ Database repositories and disposable tests support criteria 1-3. Models, service
 and validation support 4-6. Engine, listing and viewing tests support 7-8.
 Phase 3 source and user-reported core manual fixture acceptance support 9-10;
 automated Chrome testing was blocked. Account/ownership tests support
-11; engine and NPC work support 12. Criterion 13 still needs the mandatory LLM
-commentary. Code, tests and the final demonstration provide evidence for 14.
+11; engine and NPC work support 12. The local Groq integration supports criterion
+13; a real-provider demonstration remains. Code, tests and the final demonstration
+provide evidence for 14.
 These are evidence links, not predicted marks.
 
 Local database structure evidence: version-aware validators, exact metadata
@@ -110,3 +111,37 @@ are added. No backend, rule, NPC strategy, deployment or production changes were
 made. The transport root cause remains unproven. User-provided history confirms
 revision 8, while the production tab still holds expected revision 7; no further
 NPC POST is authorized. Stage F remains OPEN and mandatory G17 remains missing.
+
+Phase 4 Groq commentary, local implementation (2026-10-31), supersedes the G17
+implementation gap in historical updates above. New owner-authorized generation
+and public retrieval use committed human/NPC dice receipts, durable single-claim
+deduplication, provider timeouts/spend controls and deterministic fallback. The
+owner-default frontend narrates new battles during ordinary play/fast-forward, without
+blocking gameplay or replaying uncertain operations. All 141 earlier frontend
+tests plus 26 commentary tests pass; TypeScript/build and 43 contracts pass.
+The complete isolated backend suite passes 891 tests, with 44 opt-in real cases
+skipped and 0 failures, including blocked-provider isolation from gameplay routes.
+No real Groq call, Atlas write, production acceptance or deployment is claimed.
+See [implementation, exact files and verification](../../docs/PHASE4_GROQ_COMMENTARY.md).
+G17 live demonstration, Stage F fast-forward acceptance and submission remain
+open. The user-configured Render variables are preserved; revision 8 is confirmed
+committed and the transport interruption remains unresolved.
+
+Final local release review adds a public saved-commentary check for spectators
+who loaded a battle before narration existed. Regression evidence covers tied
+rolls, later game revisions, provider model/quota/HTTP failures, cancellation
+after claiming/submission without rebilling, and repeated spectator retrieval.
+No further release-blocking defect was found. Real provider/MongoDB/browser
+behavior remains unverified; the review does not close Stage F acceptance.
+
+Final compliance/cost patch: narration defaults on for newly committed owner
+exchanges; opt-out and reload avoid historical generation. A separate bounded
+receipt cursor replaces the 16-exchange cutoff and does not depend on loaded
+history pages. One Roll commits one dice exchange, with its own commentary ID;
+multiple rolls in one attack retain separate records. Atomic existing MongoDB
+rate buckets enforce 100 global/day and 30/game/day at UTC midnight, alongside
+the existing minute/hour/account limits. Only a unique claim winner counts
+admission; cached/duplicate retrieval is free of generation allowance. Failed
+admissions remain conservatively reserved and cap denial saves fallback. Tests
+cover exact limits, UTC reset, restart/concurrency and multiple rolls. No new
+database setup, environment change or production operation was performed.

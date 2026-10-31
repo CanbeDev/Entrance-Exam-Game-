@@ -110,6 +110,166 @@
         "title": "Allocation",
         "type": "object"
       },
+      "BattleCommentary": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Action Id",
+            "type": "string"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/BattleFacts"
+          },
+          "game_id": {
+            "pattern": "^[0-9a-f]{24}$",
+            "title": "Game Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "groq",
+              "deterministic"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_generated",
+              "pending",
+              "ready",
+              "fallback"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 1600,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "game_id",
+          "revision",
+          "action_id",
+          "status",
+          "source",
+          "text",
+          "reason",
+          "facts"
+        ],
+        "title": "BattleCommentary",
+        "type": "object"
+      },
+      "BattleFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_kind": {
+            "enum": [
+              "human",
+              "npc"
+            ],
+            "title": "Actor Kind",
+            "type": "string"
+          },
+          "attacker": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Attacker",
+            "type": "string"
+          },
+          "attacker_dice": {
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Attacker Dice",
+            "type": "array"
+          },
+          "attacker_losses": {
+            "minimum": 0.0,
+            "title": "Attacker Losses",
+            "type": "integer"
+          },
+          "conquered": {
+            "title": "Conquered",
+            "type": "boolean"
+          },
+          "defender": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Defender",
+            "type": "string"
+          },
+          "defender_dice": {
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Defender Dice",
+            "type": "array"
+          },
+          "defender_losses": {
+            "minimum": 0.0,
+            "title": "Defender Losses",
+            "type": "integer"
+          },
+          "eliminated": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Eliminated",
+            "type": "array"
+          },
+          "round": {
+            "minimum": 1.0,
+            "title": "Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attacker",
+          "defender",
+          "attacker_dice",
+          "defender_dice",
+          "attacker_losses",
+          "defender_losses",
+          "conquered",
+          "eliminated",
+          "round",
+          "actor_kind"
+        ],
+        "title": "BattleFacts",
+        "type": "object"
+      },
+      "CommentaryRequest": {
+        "additionalProperties": false,
+        "description": "Identity comes exclusively from the path and persisted receipt.",
+        "properties": {},
+        "title": "CommentaryRequest",
+        "type": "object"
+      },
       "Credentials": {
         "additionalProperties": false,
         "properties": {
@@ -1884,6 +2044,118 @@
         "summary": "Human Action",
         "tags": [
           "game sessions"
+        ]
+      }
+    },
+    "/games/{game_id}/commentary/{revision}": {
+      "get": {
+        "operationId": "read_commentary_games__game_id__commentary__revision__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BattleCommentary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Commentary",
+        "tags": [
+          "AI battle commentary"
+        ]
+      },
+      "post": {
+        "operationId": "generate_commentary_games__game_id__commentary__revision__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentaryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BattleCommentary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Commentary",
+        "tags": [
+          "AI battle commentary"
         ]
       }
     },
