@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
-from groq import (APIConnectionError, APITimeoutError, AsyncGroq, AuthenticationError,
+from groq import (APIConnectionError, APITimeoutError, AsyncGroq, AuthenticationError, BadRequestError,
                   InternalServerError, NotFoundError, PermissionDeniedError, RateLimitError)
 
 from app.services import groq_commentary
@@ -55,9 +55,11 @@ def test_real_narration_is_requested_for_human_and_npc_committed_facts_without_m
     assert "Do not name countries" in prompt
     assert "do not mention dice" in prompt
     assert "offline-provider-key" not in json.dumps(arguments)
-    assert arguments["model"] == "llama-3.1-8b-instant"
-    assert arguments["response_format"] == {"type": "json_object"}
-    assert arguments["max_completion_tokens"] == 120
+    assert arguments["model"] == "openai/gpt-oss-20b"
+    assert arguments["response_format"] == strict_format()
+    assert arguments["max_completion_tokens"] == 512
+    assert arguments["reasoning_effort"] == "low"
+    assert arguments["include_reasoning"] is False
     assert arguments["temperature"] == 0.8
 
 
@@ -93,7 +95,7 @@ def test_missing_configuration_does_not_create_or_call_a_provider(key):
 def test_secret_is_not_in_narrator_repr_or_serialized_provider_messages():
     narrator = GroqNarrator("offline-secret-never-display", client=fake_client())
     assert "offline-secret" not in repr(narrator)
-    assert "llama-3.1-8b-instant" in repr(narrator)
+    assert "openai/gpt-oss-20b" in repr(narrator)
 
 
 REQUEST = httpx.Request("POST", "https://offline.invalid/chat/completions")
@@ -193,9 +195,11 @@ def test_real_pinned_sdk_uses_mock_http_transport_and_owned_client_closes(monkey
     async def handler(request):
         requests.append(request)
         payload = json.loads(request.content)
-        assert payload["model"] == "llama-3.1-8b-instant"
-        assert payload["max_completion_tokens"] == 120
-        assert payload["response_format"] == {"type": "json_object"}
+        assert payload["model"] == "openai/gpt-oss-20b"
+        assert payload["max_completion_tokens"] == 512
+        assert payload["response_format"] == strict_format()
+        assert payload["reasoning_effort"] == "low"
+        assert payload["include_reasoning"] is False
         assert json.loads(payload["messages"][1]["content"]) == FACTS
         return httpx.Response(200, json={"id": "offline-completion", "object": "chat.completion",
             "created": 0, "model": payload["model"], "choices": [{"index": 0,
@@ -230,3 +234,114 @@ def test_oversized_context_is_rejected_before_any_billable_provider_request():
 
 def test_unrecognized_error_reasons_never_expose_raw_detail():
     assert str(NarrationUnavailable("untrusted-provider-detail")) == "provider_unavailable"
+
+
+def strict_format():
+    return {"type": "json_schema", "json_schema": {"name": "battle_atmosphere", "strict": True,
+        "schema": {"type": "object", "properties": {"lead": {"type": "string"}},
+                   "required": ["lead"], "additionalProperties": False}}}
+
+
+@pytest.mark.parametrize("model", ["openai/gpt-oss-20b", "openai/gpt-oss-120b"])
+def test_gpt_oss_uses_supported_strict_schema_and_bounded_reasoning(model):
+    client = fake_client()
+    assert run(GroqNarrator("offline-provider-key", model=model, client=client)) == LEAD
+    arguments = client.chat.completions.create.await_args.kwargs
+    assert arguments["model"] == model
+    assert arguments["response_format"] == strict_format()
+    assert arguments["reasoning_effort"] == "low" and arguments["include_reasoning"] is False
+    assert arguments["max_completion_tokens"] == 512
+    assert "reasoning_format" not in arguments
+    assert "tools" not in arguments and "stream" not in arguments
+    assert client.chat.completions.create.await_count == 1
+
+
+def test_other_configured_models_keep_json_mode_without_unsupported_reasoning_parameters():
+    client = fake_client()
+    assert run(GroqNarrator("offline-provider-key", model="configured-model", client=client)) == LEAD
+    arguments = client.chat.completions.create.await_args.kwargs
+    assert arguments["response_format"] == {"type": "json_object"}
+    assert arguments["max_completion_tokens"] == 120
+    assert "reasoning_effort" not in arguments and "include_reasoning" not in arguments
+
+
+@pytest.mark.parametrize("body", [
+    {"code": "json_validate_failed", "message": "NEVER_EXPOSE_PROVIDER_TEXT", "failed_generation": "NEVER_EXPOSE_FAILED_GENERATION"},
+    {"error": {"code": "json_validate_failed", "message": "NEVER_EXPOSE_PROVIDER_TEXT"}},
+])
+def test_groq_validation_failure_is_sanitized_without_retry_or_format_downgrade(body):
+    client = fake_client(error=BadRequestError("NEVER_EXPOSE_PROVIDER_TEXT",
+        response=httpx.Response(400, request=REQUEST), body=body))
+    with pytest.raises(NarrationUnavailable) as caught:
+        run(GroqNarrator("offline-provider-key", client=client))
+    assert caught.value.reason == "invalid_output"
+    assert caught.value.__context__ is None
+    assert "NEVER_EXPOSE" not in repr(caught.value)
+    assert client.chat.completions.create.await_count == 1
+    assert client.chat.completions.create.await_args.kwargs["response_format"] == strict_format()
+
+
+@pytest.mark.parametrize("body", [None, "not-json", {"code": "other_bad_request"}, {"error": []}])
+def test_other_provider_bad_requests_still_fail_safely_without_raw_errors(body):
+    client = fake_client(error=BadRequestError("NEVER_EXPOSE_PROVIDER_TEXT",
+        response=httpx.Response(400, request=REQUEST), body=body))
+    with pytest.raises(NarrationUnavailable, match="^provider_unavailable$"):
+        run(GroqNarrator("offline-provider-key", client=client))
+    assert client.chat.completions.create.await_count == 1
+
+
+def test_real_sdk_json_validation_400_stays_single_attempt_and_closes_client(monkeypatch):
+    calls, clients = [], []
+    async def handler(request):
+        calls.append(json.loads(request.content))
+        return httpx.Response(400, json={"error": {"message": "NEVER_EXPOSE_PROVIDER_TEXT",
+            "type": "invalid_request_error", "code": "json_validate_failed",
+            "failed_generation": "NEVER_EXPOSE_FAILED_GENERATION"}})
+    def factory(**arguments):
+        assert arguments == {"api_key": "offline-provider-key", "max_retries": 0, "timeout": 6.0}
+        client = AsyncGroq(**arguments, base_url="https://offline.invalid/",
+            http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+        clients.append(client)
+        return client
+    monkeypatch.setattr(groq_commentary, "AsyncGroq", factory)
+    with pytest.raises(NarrationUnavailable, match="^invalid_output$"):
+        run(GroqNarrator("offline-provider-key"))
+    assert len(calls) == 1 and calls[0]["response_format"] == strict_format()
+    assert clients[0].is_closed()
+
+
+@pytest.mark.parametrize("outcome", ["valid", "json_validate_failed", "truncated", "invented_facts"])
+def test_new_model_outcomes_preserve_receipts_daily_admission_and_saved_fallback(catalog, outcome):
+    from test_commentary_service import battle, service
+    store, games, principal, game_id, action = battle(catalog)
+    before = copy.deepcopy((store.games, store.receipts))
+    if outcome == "json_validate_failed":
+        client = fake_client(error=BadRequestError("NEVER_EXPOSE_PROVIDER_TEXT",
+            response=httpx.Response(400, request=REQUEST), body={"code": "json_validate_failed"}))
+    elif outcome == "truncated":
+        client = fake_client(result=response('{"lead":"Tension rises', finish_reason="length"))
+    elif outcome == "invented_facts":
+        client = fake_client(result=response(json.dumps({"lead": "Cambodia conquers Seychelles with six soldiers."})))
+    else:
+        client = fake_client()
+    commentary = service(games, narrator=GroqNarrator("offline-provider-key", model="openai/gpt-oss-20b", client=client))
+    answer = asyncio.run(commentary.generate(principal, game_id, action.state.revision))
+    assert answer.status == ("ready" if outcome == "valid" else "fallback")
+    if outcome == "valid":
+        assert answer.text.startswith(LEAD)
+    else:
+        assert answer.source == "deterministic" and answer.reason == "invalid_output"
+        assert "NEVER_EXPOSE" not in answer.model_dump_json()
+    assert "attacker dice" in answer.text and answer.facts.attacker_losses >= 0
+    assert (store.games, store.receipts) == before
+    counters = copy.deepcopy(store.limits)
+    # Existing deterministic fallback records are retained even after a fixed
+    # model is available. A deployment never reclaims them or rebills the event.
+    fixed_client = fake_client()
+    restarted = service(games, repository=commentary.repository,
+        narrator=GroqNarrator("offline-provider-key", model="openai/gpt-oss-20b", client=fixed_client))
+    assert asyncio.run(restarted.generate(principal, game_id, action.state.revision)) == answer
+    assert restarted.read(game_id, action.state.revision) == answer
+    assert store.limits == counters and (store.games, store.receipts) == before
+    client.chat.completions.create.assert_awaited_once()
+    fixed_client.chat.completions.create.assert_not_awaited()

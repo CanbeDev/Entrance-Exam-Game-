@@ -145,3 +145,17 @@ admission; cached/duplicate retrieval is free of generation allowance. Failed
 admissions remain conservatively reserved and cap denial saves fallback. Tests
 cover exact limits, UTC reset, restart/concurrency and multiple rolls. No new
 database setup, environment change or production operation was performed.
+
+Groq JSON compatibility correction (local): the user reports release `2ffff1d`
+received 404 model_not_found with Llama at Move 2, then 400 json_validate_failed
+with GPT-OSS 20B at Move 6 (599 input / 120 output tokens). Both fallbacks saved
+and gameplay remained available. The adapter now uses documented strict JSON
+Schema for GPT-OSS, low reasoning effort and a bounded 512-token completion;
+the unchanged local 240-character/8–40-word lexical guard and server-supplied
+battle facts remain authoritative. The exact invalid output was not supplied;
+token exhaustion is a supported hypothesis, not proven byte-level causation.
+Provider validation failures stay sanitized and never retry. Real SDK/mock-HTTP
+and durable-fallback regressions pass; complete checks pass 906 backend tests
+(44 real cases skipped), 167 frontend tests and 43 contracts, with no failures.
+No existing fallback, game receipt, admission counter, secret or production
+configuration was modified. Live corrected-provider acceptance remains open.

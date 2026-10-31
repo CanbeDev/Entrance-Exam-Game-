@@ -5,7 +5,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from groq import AsyncGroq, APITimeoutError, RateLimitError
+from groq import AsyncGroq, APITimeoutError, BadRequestError, RateLimitError
+
+
+DEFAULT_MODEL = "openai/gpt-oss-20b"
+_STRICT_MODELS = frozenset({DEFAULT_MODEL, "openai/gpt-oss-120b"})
 
 
 class NarrationUnavailable(Exception):
@@ -85,13 +89,26 @@ def validate_lead(response: Any) -> str:
 @dataclass(slots=True)
 class GroqNarrator:
     api_key: str | None = field(repr=False)
-    model: str = "llama-3.1-8b-instant"
+    model: str = DEFAULT_MODEL
     client: Any = field(default=None, repr=False, kw_only=True)
 
     async def _request(self, messages):
         arguments = {"model": self.model, "messages": messages,
                      "response_format": {"type": "json_object"},
                      "max_completion_tokens": 120, "temperature": 0.8}
+        if self.model in _STRICT_MODELS:
+            # GPT-OSS supports strict constrained decoding. Keep lexical/length
+            # validation local; unsupported schema keywords can reject requests.
+            arguments.update(response_format={"type": "json_schema", "json_schema": {
+                "name": "battle_atmosphere", "strict": True, "schema": {
+                    "type": "object", "properties": {"lead": {"type": "string"}},
+                    "required": ["lead"], "additionalProperties": False,
+                },
+            }}, reasoning_effort="low", include_reasoning=False,
+                # The original 120-token completion was exhausted in production.
+                # Reserve bounded headroom for reasoning plus a complete JSON
+                # object; visible narration still has the same 240-character cap.
+                max_completion_tokens=512)
         if self.client is not None:
             return await self.client.chat.completions.create(**arguments)
         # Owned clients are closed even on cancellation; no SDK retries or
@@ -121,6 +138,13 @@ class GroqNarrator:
             reason = "provider_timeout"
         except RateLimitError:
             reason = "provider_rate_limited"
+        except BadRequestError as error:
+            # The SDK normally unwraps error bodies; accept either shape without
+            # surfacing failed generations, provider messages or request details.
+            body = error.body if isinstance(error.body, dict) else {}
+            detail = body.get("error", body)
+            code = detail.get("code") if isinstance(detail, dict) else None
+            reason = "invalid_output" if code == "json_validate_failed" else "provider_unavailable"
         except Exception:
             reason = "provider_unavailable"
         # Raise outside the handler so raw SDK errors are not chained or exposed.

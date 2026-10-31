@@ -81,7 +81,10 @@ refunded when a later bucket denies, a counter write is uncertain or work stops.
 No generation can pass a bucket's ceiling. Denied/failed claims are not reopened
 automatically, including on the next day; new exchanges use the new day's budget.
 The SDK has no automatic retries, a six-second HTTP timeout, an eight-second
-overall provider deadline and 120 output tokens. Provider context is bounded.
+overall provider deadline. GPT-OSS requests have a 512-token total completion
+ceiling with low reasoning effort; other explicitly configured models retain
+the legacy 120-token JSON-mode ceiling. Visible narration remains limited to
+240 characters and 8–40 words. Provider context is bounded.
 No worker queue or background task is started by gameplay.
 
 Frontend retrieval/generation queues and caches are independent of gameplay.
@@ -118,8 +121,10 @@ index, validator, migration or manual Atlas step is added for daily caps.
 `GROQ_API_KEY` and `GROQ_MODEL` are **already configured in Render by the owner**.
 No replacement key, extra environment variable or Vercel secret is required.
 The backend reads these process variables; it never loads them into the frontend.
-The default model is `llama-3.1-8b-instant`. Configuration availability in the
-running process remains unverified until a separately approved backend deployment.
+The code default is now `openai/gpt-oss-20b`, matching the user's updated Render
+model. `GROQ_MODEL` still takes precedence. The user confirmed that this model
+was reached in production, but the corrected request has not been deployed or
+verified live. No environment value was changed by this implementation.
 Missing local configuration produces a deterministic fallback; tests inject a
 mock provider and never need a real key.
 
@@ -157,7 +162,9 @@ Real Groq/browser acceptance, Stage F live fast-forward and submission packaging
 remain outstanding. Optional illustrated styling/audio are outside this patch.
 
 Provider references: [official SDK](https://github.com/groq/groq-python),
-[Llama 3.1 8B model](https://console.groq.com/docs/model/llama-3.1-8b-instant).
+[GPT-OSS 20B model](https://console.groq.com/docs/model/openai/gpt-oss-20b),
+[strict structured outputs](https://console.groq.com/docs/structured-outputs),
+[API parameters](https://console.groq.com/docs/api-reference).
 
 ## Exact patch files
 
@@ -211,8 +218,8 @@ Frontend: **167 passed, 0 failed, 0 skipped**, comprising 141 retained regressio
 and 26 commentary/live-narration tests. TypeScript and the Vite production build
 passed; all **43 OpenAPI components** passed the contract check.
 
-Backend: **891 passed, 0 failed, 44 skipped** in the final complete isolated run.
-New coverage is 52 provider, 21 repository, 42 service, 17 API and 2 startup cases. The 44 real
+Backend: **906 passed, 0 failed, 44 skipped** in the latest complete isolated run.
+New coverage is 66 provider, 21 repository, 42 service, 17 API and 3 startup cases. The 44 real
 MongoDB/provisioning/startup opt-in cases remain skipped without authorization.
 All tests block external network access and use isolated memory/provider fixtures;
 none imports `backend/test_database.py`. One existing Starlette/httpx deprecation
@@ -377,3 +384,103 @@ Live provider output/latency and real commentary persistence remain unverified.
 Revision 8 remains committed, the transport interruption is unresolved, and
 Stage F production fast-forward acceptance stays open. No Git mutation,
 deployment, provider request, Atlas access or production gameplay was performed.
+
+## Production JSON validation failure: local correction
+
+User-provided evidence on frontend/backend release `2ffff1d`: Move 2 with
+`llama-3.1-8b-instant` received Groq 404 `model_not_found`. The user changed
+Render's model to `openai/gpt-oss-20b`. Move 6 then reached that model but received
+HTTP 400 `json_validate_failed`, with 599 input and exactly 120 output tokens.
+Both outcomes retained deterministic fallbacks and gameplay remained available.
+The agent did not access those services or inspect/update those records.
+
+Confirmed failure boundary: Groq rejected its generated JSON before returning a
+usable completion. The old request used `response_format={"type":"json_object"}`,
+no supplied JSON Schema, `max_completion_tokens=120` and no reasoning setting.
+This was not an application schema rejection: `validate_lead` never received a
+successful completion for that call. It was also separate from the earlier
+model lookup failure and from the unresolved NPC transport interruption.
+
+The exact malformed generation, finish reason and reasoning-token breakdown
+were not supplied. Using exactly the 120-token ceiling strongly suggests output
+exhaustion/truncation, but does not prove its byte-level cause. GPT-OSS defaults
+to medium reasoning effort; extra reasoning is another plausible contributor.
+No further provider request was made to reproduce the failure. Tests with a
+synthetic provider 400 validate recovery, not the cause of the historical call.
+
+For `openai/gpt-oss-20b` and the documented compatible GPT-OSS 120B model, the
+adapter now sends:
+
+```json
+{
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "battle_atmosphere",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "properties": {"lead": {"type": "string"}},
+        "required": ["lead"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "reasoning_effort": "low",
+  "include_reasoning": false,
+  "max_completion_tokens": 512,
+  "temperature": 0.8
+}
+```
+
+This follows Groq's documented strict schema shape for GPT-OSS. It intentionally
+does not send unsupported lexical/length schema keywords: existing local checks
+still reject empty, long, factual, malformed or truncated narration. Strict JSON
+controls structure, not factual accuracy. The server still appends the original
+authoritative summary; no event facts come from model-generated fields.
+
+The larger but bounded completion allowance provides headroom for the exhausted
+120-token request; it is not a proven universal minimum. `include_reasoning=false`
+hides returned reasoning, and does not claim to disable the model's reasoning.
+Low effort is explicitly requested rather than relying on the provider default.
+Other configured model IDs keep their old JSON-mode payload; there is no model
+probe, second provider call, automatic format downgrade or retry on a 400.
+
+Only the fixed `json_validate_failed` provider error code maps to `invalid_output`;
+raw error messages and failed generations are never returned/logged by the
+adapter. Other bad requests retain the sanitized unavailable fallback. The
+pinned SDK `groq==1.7.0` supports and serializes the new fields, so no dependency
+upgrade or API/frontend contract change is needed.
+
+Unchanged protections: six-second HTTP/eight-second provider deadline, zero SDK
+retries, gameplay's 20-second deadline, all five admission limits, durable unique
+receipt claims, existing fallback records, owner/session/Origin/CSRF checks,
+default-on live scheduling, pending recovery, Pause and NPC attempt counters.
+Maximum completion spend per GPT-OSS call can be higher than before (512 versus
+120 tokens); daily/request admission ceilings and the visible-text cap remain.
+
+Exact files for this fix:
+
+- `backend/app/services/groq_commentary.py`
+- `backend/app/startup.py`
+- `backend/tests/test_groq_commentary.py`
+- `backend/tests/test_commentary_startup.py`
+- `backend/docs/REQUIREMENTS.md` (new correction evidence only; leave the opening Stage E hunk unstaged)
+- `docs/PHASE4_GROQ_COMMENTARY.md`
+
+Verification adds strict GPT-OSS/legacy-model payload cases, real pinned-SDK
+mock-HTTP success/400 behavior, valid narration, truncation/factual rejection,
+safe provider errors and startup configuration. Committed-event tests verify
+saved fallbacks are retained across a corrected-provider restart, counts do not
+reset and game state/receipts are untouched. Latest totals: **906 backend passed,
+0 failed, 44 skipped; 167 frontend passed, 0 failed/skipped; 43 contracts passed**.
+TypeScript/build, dependency and security checks pass. The existing Starlette/
+httpx warning remains. No real Groq/MongoDB or production acceptance is claimed.
+
+Remaining risks: strict format plus extra headroom has not been verified against
+the live provider and can still time out, be truncated or fail lexical validation.
+Already saved fallbacks for Moves 2/6 remain unchanged and will not regenerate
+after deployment. Any future live validation must separately approve one new
+eligible receipt/provider attempt; never delete/reset/retry existing claims.
+No key, environment, production game, browser tab, Git index/history or deployment
+was changed. Release remains ready for separate approval with these limitations.

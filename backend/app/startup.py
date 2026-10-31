@@ -92,9 +92,9 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
             # Optional narration never participates in readiness or game commits.
             from app.repositories.commentary_repository import MongoCommentaryRepository
             from app.services.commentary_service import CommentaryService
-            from app.services.groq_commentary import GroqNarrator
+            from app.services.groq_commentary import DEFAULT_MODEL, GroqNarrator
             app.state.commentary = CommentaryService(context.games, MongoCommentaryRepository(client[settings.database_name]),
-                GroqNarrator(os.environ.get("GROQ_API_KEY"), os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")))
+                GroqNarrator(os.environ.get("GROQ_API_KEY"), os.environ.get("GROQ_MODEL", DEFAULT_MODEL)))
             if readiness != "ready":
                 logger.warning("phase4_readiness=%s; writes remain disabled", readiness)
             yield
