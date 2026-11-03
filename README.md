@@ -12,9 +12,11 @@ NPCs to control ten countries.
 - Country selection, battles, reinforcements and soldier transfers.
 - Strategic NPCs, visible fast-forward and battle history.
 - GroqCloud battle commentary with saved narration and a deterministic fallback.
+- Interactive world atlas, animated battle dice and Flag Poster results.
+- Optional sound effects, volume preferences and country information cards.
 
-Commentary is implemented locally and awaits deployment and real-provider
-acceptance. Production fast-forward acceptance remains incomplete.
+The current UI redesign and audio patch await final connected-game acceptance.
+Earlier live commentary evidence does not certify this working-tree release.
 
 ## Technology Stack
 
@@ -72,10 +74,12 @@ npm.cmd run check:contracts
 npm.cmd run build
 ```
 
-Phase 3 passed 54 automated tests, TypeScript checks and the production build.
-The user reported successful core manual browser acceptance against the offline
-fixture. Automated Chrome testing was blocked by a browser URL policy check.
-Production acceptance remains pending. See [backend testing](backend/docs/TESTING.md).
+Stage 9 offline checks pass 358 public frontend tests, 929 backend tests and 43 contract
+components. TypeScript, build and data-drift checks pass. All 44 real-database
+tests remain skipped. Mocks do not prove live persistence or provider delivery.
 
-The commentary patch passes 167 frontend tests and 43 contract checks, with
-TypeScript/build checks passing. Mocked provider tests do not prove live Groq delivery.
+See [backend testing](backend/docs/TESTING.md), the
+[manual gameplay checklist](docs/STAGE9_HUMAN_GAMEPLAY_ACCEPTANCE.md) and
+[acceptance report](docs/UI_STAGE9_ACCEPTANCE_REPORT.md). Connected gameplay and
+release approval remain human tasks. The earlier Phase 3 browser-automation
+limitation is preserved in its [historical report](docs/FRONTEND_PHASE3_REPORT.md).

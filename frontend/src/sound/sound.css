@@ -1,0 +1,7 @@
+.geo-sound { margin-block: 8px; max-inline-size: 28rem; font-size: 13px; }
+.geo-sound summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
+.geo-sound fieldset { padding: 12px; margin: 0; border: 1px solid var(--geo-line); border-radius: 8px; background: var(--geo-paper); }
+.geo-sound label { display: flex; align-items: center; gap: 12px; min-block-size: 44px; }
+.geo-sound input[type="checkbox"] { inline-size: 20px; block-size: 20px; }
+.geo-sound input[type="range"] { min-inline-size: 0; max-inline-size: 100%; flex: 1; accent-color: var(--geo-forest); }
+.geo-sound button { min-block-size: 44px; }

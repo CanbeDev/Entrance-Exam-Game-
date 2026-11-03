@@ -1,0 +1,39 @@
+/* Stage 5: scoped presentation of existing commands; no new game states. */
+.geo-command-context, .geo-command { min-inline-size: 0; }
+.geo-command__header { display: block; border-block-end: 1px solid var(--geo-line); margin-block-end: var(--geo-space-base); padding-block-end: var(--geo-space-md); }
+.geo-command__header h2 { margin: var(--geo-space-xs) 0 var(--geo-space-sm); font: 600 22px/28px var(--geo-font-heading); overflow-wrap: anywhere; }
+.geo-command__header p { margin: 0; }
+.geo-command__comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--geo-space-md); margin-block: var(--geo-space-base); }
+.geo-command__country { display: flex; flex-direction: column; gap: var(--geo-space-xs); overflow-wrap: anywhere; min-inline-size: 0; }
+.geo-command__country > span:last-child { font-size: var(--geo-body-sm-size); }
+.geo-command__budget { font-weight: 600; }
+.geo-command__actions { display: flex; flex-wrap: wrap; flex-direction: column; align-items: stretch; gap: var(--geo-space-sm); margin-block: var(--geo-space-base); }
+.geo-command__footer { border-block-start: 1px solid var(--geo-line); margin-block-start: var(--geo-space-base); padding-block-start: var(--geo-space-md); }
+.geo-command__recovery { border-inline-start: 3px solid var(--geo-copper); background: var(--geo-sand); padding: var(--geo-space-md); }
+.geo-command .geo-button-wrap { display: flex; inline-size: 100%; margin-block: var(--geo-space-xs); }
+.geo-command .geo-button { inline-size: 100%; margin: 0; }
+.geo-command .geo-help { line-height: var(--geo-body-sm-line); }
+.geo-game-page .geo-command .geo-button--primary:not(:disabled) { min-block-size: var(--geo-primary-height); background: var(--geo-forest); border-color: var(--geo-forest); color: var(--geo-paper); }
+.geo-game-page .geo-command .geo-button--primary:hover:not(:disabled) { background: var(--geo-forest-hover); }
+.geo-game-page .geo-command .geo-button--secondary:not(:disabled) { background: var(--geo-paper); border: 1px solid var(--geo-outline); color: var(--geo-ink); }
+.geo-game-page .geo-command .geo-button--secondary:hover:not(:disabled) { background: var(--geo-sand); border-color: var(--geo-ink); }
+.geo-game-page .geo-command .geo-button--quiet:not(:disabled) { background: transparent; border-color: transparent; color: var(--geo-forest); }
+.geo-game-page .geo-command .geo-button--quiet:hover:not(:disabled) { background: var(--geo-sand); }
+.geo-command .geo-stepper__controls button { margin: 0; min-inline-size: 44px; min-block-size: 44px; padding: 4px; }
+.geo-command .geo-stepper { margin-block: var(--geo-space-md); }
+.geo-command fieldset { margin-inline: 0; }
+.geo-command :where(input, select) { max-inline-size: 100%; }
+@media (max-width: 600px) { .geo-command__comparison { gap: var(--geo-space-sm); } }
+@media (prefers-reduced-motion: reduce) { .geo-command * { animation: none !important; transition: none !important; } }
+.geo-command__comparison { grid-template-columns: minmax(0, 1fr); padding-block: var(--geo-space-md); border-block: 1px solid var(--geo-line); }
+.geo-command__country { flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
+.geo-command__country .geo-label { flex-basis: 100%; }
+.geo-command__direction { font-size: 22px; line-height: 1; color: var(--geo-copper); text-align: center; }
+.geo-command__comparison[data-ready="true"], .geo-command__budget[data-valid="true"] { animation: geo-command-ready 160ms ease-out 1; }
+.geo-command .geo-button { transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease; }
+.geo-command .geo-button:hover:not(:disabled) { transform: translateY(-1px); }
+.geo-command .geo-button:active:not(:disabled) { transform: translateY(1px); }
+@keyframes geo-command-ready { from { border-color: var(--geo-copper); } to { border-color: var(--geo-line); } }
+@media (prefers-reduced-motion: reduce) { .geo-command *, .geo-command .geo-button:hover, .geo-command .geo-button:active { animation: none !important; transition: none !important; transform: none !important; } }
+.geo-command__budget { border-inline-start: 2px solid transparent; padding-inline-start: var(--geo-space-sm); }
+.geo-command__budget[data-valid="true"] { border-color: var(--geo-forest); color: var(--geo-forest); }

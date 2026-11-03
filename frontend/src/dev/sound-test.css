@@ -1,0 +1,10 @@
+.geo-sound-test { max-inline-size: 58rem; margin-block: 12px; padding: 12px; border: 1px solid var(--geo-line); border-radius: 8px; background: var(--geo-paper); font-size: 13px; }
+.geo-sound-test summary { cursor: pointer; min-block-size: 44px; padding-block: 10px; font-weight: 600; }
+.geo-sound-test ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.geo-sound-test li { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding-block: 8px; border-block-end: 1px solid var(--geo-line); }
+.geo-sound-test li div { min-inline-size: 0; }
+.geo-sound-test li span { display: block; overflow-wrap: anywhere; color: var(--geo-body-muted); }
+.geo-sound-test button { min-block-size: 44px; flex-shrink: 0; }
+.geo-sound-test__status { overflow-wrap: anywhere; margin-block: 12px; }
+.geo-sound-test output { display: block; margin-block-end: 12px; }
+@media (max-width: 500px) { .geo-sound-test li { align-items: stretch; flex-direction: column; } }

@@ -1,0 +1,70 @@
+{
+  "brunei-darussalam": {
+    "svgKey": "BN",
+    "svgName": "Brunei Darussalam"
+  },
+  "democratic-republic-of-the-congo": {
+    "svgKey": "CD",
+    "svgName": "Democratic Republic of the Congo"
+  },
+  "congo": {
+    "svgKey": "CG",
+    "svgName": "Republic of Congo"
+  },
+  "czechia": {
+    "svgKey": "CZ",
+    "svgName": "Czech Republic"
+  },
+  "gambia": {
+    "svgKey": "GM",
+    "svgName": "The Gambia"
+  },
+  "south-korea": {
+    "svgKey": "KR",
+    "svgName": "Republic of Korea"
+  },
+  "laos": {
+    "svgKey": "LA",
+    "svgName": "Lao PDR"
+  },
+  "north-macedonia": {
+    "svgKey": "MK",
+    "svgName": "Macedonia"
+  },
+  "north-korea": {
+    "svgKey": "KP",
+    "svgName": "Dem. Rep. Korea"
+  },
+  "state-of-palestine": {
+    "svgKey": "PS",
+    "svgName": "Palestine"
+  },
+  "swaziland": {
+    "svgKey": "SZ",
+    "svgName": "Swaziland"
+  },
+  "russia": {
+    "svgKey": "Russian Federation",
+    "svgName": "Russian Federation"
+  },
+  "cabo-verde": {
+    "svgKey": "Cape Verde",
+    "svgName": "Cape Verde"
+  },
+  "micronesia": {
+    "svgKey": "Federated States of Micronesia",
+    "svgName": "Federated States of Micronesia"
+  },
+  "saint-kitts-and-nevis": {
+    "svgKey": "Saint Kitts and Nevis",
+    "svgName": "Saint Kitts and Nevis"
+  },
+  "sao-tome-and-principe": {
+    "svgKey": "São Tomé and Principe",
+    "svgName": "São Tomé and Principe"
+  },
+  "saint-vincent-and-the-grenadines": {
+    "svgKey": "VC",
+    "svgName": "Saint Vincent and the Grenadines"
+  }
+}

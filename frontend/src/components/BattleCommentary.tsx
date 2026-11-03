@@ -7,36 +7,31 @@ export interface CommentaryDisplay {
   error: string | null;
   requested: boolean;
 }
-function summary(game: PublicGame, entry: PublicCommittedAction): string {
-  const battle = entry.events.find((event) => event.type === 'dice_exchange');
-  if (!battle) return '';
-  const country = (id: string | null | undefined) => game.countries?.find((item) => item.id === id)?.name ?? id ?? 'Unknown country';
-  const outcome = entry.events.some((event) => event.type === 'conquered') ? ' A conquest was committed.' : '';
-  const eliminated = entry.events.some((event) => event.type === 'eliminated') ? ' A participant was eliminated.' : '';
-  return `${country(battle.source_id)} attacked ${country(battle.target_id)}. Attacker dice: ${battle.attacker_dice?.join(', ') || 'none'}; defender dice: ${battle.defender_dice?.join(', ') || 'none'}. Attacker losses: ${battle.attacker_losses ?? 0}; defender losses: ${battle.defender_losses ?? 0}.${outcome}${eliminated}`;
-}
-
 /** Pure presentation keeps narration clearly separate from authoritative dice/results. */
-export function BattleCommentaryView({ game, entry, display, canGenerate, generate, check }: {
+export function BattleCommentaryView({ entry, display, canGenerate, generate, check }: {
   game: PublicGame; entry: PublicCommittedAction; display: CommentaryDisplay; canGenerate: boolean;
   generate: () => void; check: () => void;
 }) {
   const value = display.commentary;
-  const ai = value?.status === 'ready' && value.source === 'groq';
+  const ready = value?.status === 'ready' && value.source === 'groq';
   const pending = value?.status === 'pending';
-  return <section aria-label={`AI Battle Commentary for move ${entry.revision}`}>
-    <h5>AI Battle Commentary</h5>
-    {display.loading && <p role="status">Loading battle commentary. Gameplay remains available.</p>}
-    {pending && <p role="status">AI commentary is being prepared. Check its saved outcome; no automatic retry is sent.</p>}
-    <p>{ai ? 'LLM-generated narration' : 'Deterministic battle summary'}: {value?.text || summary(game, entry)}</p>
-    <p>Dice, losses and ownership shown above are the authoritative game results.</p>
-    {display.error && <p role="status">{display.error}</p>}
-    {value?.status === 'fallback' && <p>AI narration is unavailable for this move. The saved summary remains available.</p>}
+  const text = value && ['ready', 'fallback'].includes(value.status) ? value.text : '';
+  const box = !!text || display.loading || pending;
+  return <>
+    {box && <section className="geo-commentary" aria-label={`Commentary for move ${entry.revision}`}>
+      <h5>Commentary</h5>
+      {text && <p className="geo-commentary__prose">{text}</p>}
+      {display.loading && <p role="status">Loading commentary. Gameplay remains available.</p>}
+      {pending && <p role="status">Commentary is being prepared. Check its saved outcome when ready.</p>}
+      {value?.status === 'fallback' && <p className="geo-help">Saved battle summary.</p>}
+    </section>}
+    {display.error && <p role="status">Commentary could not be confirmed. Gameplay is unaffected; check its saved outcome before trying again.</p>}
+    {!box && !display.error && <p className="geo-help">Commentary is not available for this exchange.</p>}
     {canGenerate && !display.loading && !display.requested && (!value || value.status === 'not_generated')
-      && <button onClick={generate}>Generate AI commentary</button>}
-    {!display.loading && (pending || value?.status === 'not_generated' || display.error || display.requested && !ai && value?.status !== 'fallback')
+      && <button onClick={generate}>Generate commentary</button>}
+    {!display.loading && (pending || value?.status === 'not_generated' || display.error || display.requested && !ready && value?.status !== 'fallback')
       && <button onClick={check}>Check saved commentary</button>}
-  </section>;
+  </>;
 }
 
 export function BattleCommentaryPanel({ api, gameId, game, entry, canGenerate, automatic, permitted }: {

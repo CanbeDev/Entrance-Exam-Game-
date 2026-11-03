@@ -349,6 +349,55 @@ test('the API NPC attempt guard runs after CSRF validation and rejects before HT
   assert.equal(f.requests.length, count);
 });
 
+test('rapid duplicate Step and Fast-forward clicks cannot submit while the original Step response is outstanding', async (t) => {
+  const f = await setup(t);
+  const gate = f.hold('POST', npcRoute);
+  const original = f.controller.stepNpc();
+  await until(() => gate.started);
+  const saved = f.state().pending;
+  await f.controller.stepNpc();
+  await f.controller.stepNpc();
+  await f.controller.fastForward();
+  assert.equal(f.npcPosts().length, 1);
+  assert.equal(f.state().pending, saved);
+  assert.equal(f.state().busy, true);
+  gate.release();
+  await original;
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().game.revision, 5);
+  assert.equal(f.state().npcAttempts, 1);
+  assert.equal(f.mock.histories.get(target).length, 1);
+});
+
+test('repeated Pause lets the submitted NPC action settle and explicit resume uses the next revision once', async (t) => {
+  const f = await setup(t);
+  f.controller.configureNpcBudget(2);
+  const gate = f.hold('POST', npcRoute);
+  const running = f.controller.fastForward();
+  await until(() => gate.started);
+  const saved = f.state().pending;
+  f.controller.pause();
+  f.controller.pause();
+  assert.equal(f.state().pending, saved);
+  assert.equal(f.state().fastForward, false);
+  gate.release();
+  await running;
+  await sleep(700);
+  assert.equal(f.npcPosts().length, 1);
+  assert.equal(f.state().game.revision, 5);
+  assert.equal(f.state().pending, null);
+  await f.controller.fastForward();
+  assert.deepEqual(f.npcPosts().map(request => request.body), [
+    { expected_revision: 4 }, { expected_revision: 5 },
+  ]);
+  assert.equal(f.state().npcAttempts, 2);
+  assert.equal(f.state().game.revision, 6);
+  assert.equal(f.state().fastForward, false);
+  assert.equal(f.state().pending, null);
+  assert.deepEqual(f.mock.histories.get(target).map(entry => entry.revision), [5, 6]);
+  assert.ok(f.state().events.every(entry => entry.npc_decision.explanation));
+});
+
 test('Pause during an in-flight NPC action accepts its result and never schedules another action', async (t) => {
   const f = await setup(t);
   const gate = f.hold('POST', npcRoute);

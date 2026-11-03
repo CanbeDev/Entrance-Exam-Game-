@@ -1,0 +1,52 @@
+/* Final Flag Poster polish: original flag artwork, integrated title and clear achievement column. */
+.geo-result { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(260px, 1fr); inline-size: 100%; min-inline-size: 0; border: 1px solid var(--geo-line); border-radius: var(--geo-radius-panel); background: var(--geo-paper); color: var(--geo-ink); margin-block: var(--geo-space-base) var(--geo-space-xl); }
+.geo-result__top { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--geo-space-base); padding: clamp(20px, 3vw, 40px); border-block-end: 1px solid var(--geo-line); }
+.geo-result__top p { margin: 0; }
+.geo-result__headline { font: 700 clamp(30px, 3.2vw, 48px)/1.05 var(--geo-font-body); text-transform: uppercase; color: var(--geo-forest); }
+.geo-result[data-result="complete"] .geo-result__headline { color: var(--geo-ink); }
+.geo-result__subtitle { font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding-block-start: var(--geo-space-sm); }
+.geo-result__campaign { font-size: 16px; line-height: 24px; max-inline-size: 32ch; overflow-wrap: anywhere; }
+.geo-result__art { min-inline-size: 0; align-self: start; }
+.geo-result__flag { display: block; inline-size: 100%; block-size: auto; aspect-ratio: 4 / 3; object-fit: contain; }
+.geo-result__flag-fallback { display: grid; place-items: center; aspect-ratio: 4 / 3; padding: var(--geo-space-xl); background: var(--geo-parchment); color: var(--geo-ink); font-size: 18px; text-align: center; }
+.geo-result__identity { padding: clamp(20px, 3vw, 40px); max-inline-size: 100%; }
+.geo-result__identity h2 { font: 700 clamp(38px, 5.5vw, 88px)/1.02 var(--geo-font-body); text-transform: uppercase; overflow-wrap: anywhere; margin: 0 0 var(--geo-space-base); color: var(--geo-deep-forest); }
+.geo-result__identity p { margin-block: 0 var(--geo-space-sm); font-size: 18px; line-height: 26px; }
+.geo-result__identity .geo-result__kind { font-size: 15px; line-height: 22px; color: var(--geo-body-muted); }
+.geo-result__achievement { display: flex; flex-direction: column; justify-content: center; min-inline-size: 0; padding: clamp(20px, 3vw, 40px); background: var(--geo-parchment); border-inline-start: 1px solid var(--geo-line); }
+.geo-result__conquest { display: flex; flex-direction: column; align-items: flex-start; padding-block-end: var(--geo-space-xl); }
+.geo-result__number { font: 700 clamp(120px, 16vw, 240px)/.9 var(--geo-font-body); color: var(--geo-ink); font-variant-numeric: tabular-nums; }
+.geo-result__descriptor { display: block; padding-block-start: var(--geo-space-base); color: var(--geo-ink); font-size: 17px; line-height: 25px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; max-inline-size: 22ch; overflow-wrap: anywhere; }
+.geo-result__stats { margin: 0; padding-block: var(--geo-space-lg); border-block: 1px solid var(--geo-line); display: flex; flex-direction: column; gap: var(--geo-space-lg); }
+.geo-result__stats dt { font-size: 15px; line-height: 22px; font-weight: 400; color: var(--geo-body-muted); }
+.geo-result__stats dd { margin: var(--geo-space-xs) 0 0; font-size: clamp(20px, 2vw, 28px); line-height: 1.3; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.geo-result nav { display: flex; flex-direction: column; gap: var(--geo-space-md); margin-block-start: var(--geo-space-xl); }
+.geo-game-page .geo-result nav a { display: inline-flex; align-items: center; justify-content: center; min-block-size: 48px; padding: var(--geo-space-md) var(--geo-space-base); border: 1px solid var(--geo-outline); border-radius: var(--geo-radius-control); font-size: 16px; line-height: 24px; font-weight: 600; text-align: center; text-decoration: none; transition: background-color 140ms ease, border-color 140ms ease; }
+.geo-game-page .geo-result nav .geo-result__primary { background: var(--geo-forest); color: var(--geo-paper); border-color: var(--geo-forest); }
+.geo-game-page .geo-result nav .geo-result__primary:hover { background: var(--geo-forest-hover); border-color: var(--geo-forest-hover); }
+.geo-game-page .geo-result nav .geo-result__secondary { background: var(--geo-paper); color: var(--geo-ink); }
+.geo-game-page .geo-result nav .geo-result__secondary:hover { background: var(--geo-sand); border-color: var(--geo-ink); }
+.geo-game-page .geo-result nav a:focus-visible { outline: 3px solid var(--geo-ink); outline-offset: 2px; }
+/* Nepal's irregular edge stays entirely in the art column; number and type never cross it. */
+.geo-result[data-flag-layout="irregular"] { grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr); }
+.geo-result[data-flag-layout="irregular"] .geo-result__art { background: var(--geo-parchment); }
+/* Bright artwork remains whole. The giant count is Ink on Parchment, never white on the flag. */
+.geo-result[data-flag-layout="bright"] .geo-result__flag { background: var(--geo-paper); }
+.geo-result--arrive { animation: geo-result-reveal 1000ms ease-out 1; }
+.geo-result--arrive .geo-result__flag { animation: geo-flag-reveal 650ms ease-out 1; }
+.geo-result--arrive .geo-result__conquest { animation: geo-result-type 650ms 100ms ease-out 1 backwards; }
+.geo-result--arrive .geo-result__identity { animation: geo-result-type 600ms 250ms ease-out 1 backwards; }
+@keyframes geo-result-reveal { from { outline: 3px solid var(--geo-copper); outline-offset: -3px; } to { outline-color: transparent; } }
+@keyframes geo-flag-reveal { from { opacity: .65; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes geo-result-type { from { opacity: .6; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 860px) {
+  .geo-result, .geo-result[data-flag-layout="irregular"] { grid-template-columns: minmax(0, 1fr); }
+  .geo-result__achievement { border-inline-start: 0; border-block-start: 1px solid var(--geo-line); }
+  .geo-result__conquest { flex-direction: row; align-items: center; gap: var(--geo-space-lg); }
+  .geo-result__number { font-size: clamp(112px, 22vw, 160px); }
+  .geo-result__descriptor { padding-block-start: 0; flex: 1; min-inline-size: 0; }
+  .geo-result__stats { flex-direction: row; flex-wrap: wrap; }
+  .geo-result__stats > div { flex: 1 1 200px; min-inline-size: 0; }
+}
+@media (max-width: 450px) { .geo-result__identity h2 { font-size: 38px; } .geo-result__top { align-items: flex-start; } .geo-result__campaign { max-inline-size: 100%; } }
+@media (prefers-reduced-motion: reduce) { .geo-result, .geo-result * { animation: none !important; transition: none !important; transform: none !important; } }

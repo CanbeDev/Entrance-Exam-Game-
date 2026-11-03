@@ -1,0 +1,228 @@
+{
+  "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+  "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+  "license": "Public domain",
+  "licenseSource": "https://www.naturalearthdata.com/about/terms-of-use/",
+  "svgSource": "https://simplemaps.com/static/demos/resources/svg-library/svgs/world.svg",
+  "svgSha256": "d364c888109452368c1f1ac6dd278667b244a75b67e2af9b23e9b35e0b7865c7",
+  "projection": "Robinson",
+  "projectionEvidence": "https://simplemaps.com/resources/svg-world",
+  "projectionSource": "https://raw.githubusercontent.com/d3/d3-geo-projection/main/src/robinson.js",
+  "projectionLicense": "Copyright 2013-2021 Mike Bostock\n\nPermission to use, copy, modify, and/or distribute this software for any purpose\nwith or without fee is hereby granted, provided that the above copyright notice\nand this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH\nREGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND\nFITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,\nINDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS\nOF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER\nTORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF\nTHIS SOFTWARE.",
+  "controlTolerance": 1.5,
+  "validationTolerance": 2,
+  "controls": [
+    {
+      "key": "LU",
+      "code": "LUX",
+      "name": "Luxembourg",
+      "scalerank": 0,
+      "coordinates": [
+        6.07179,
+        49.766794
+      ]
+    },
+    {
+      "key": "BH",
+      "code": "BHR",
+      "name": "Bahrain",
+      "scalerank": 5,
+      "coordinates": [
+        50.543901,
+        26.049132
+      ]
+    },
+    {
+      "key": "NR",
+      "code": "NRU",
+      "name": "Nauru",
+      "scalerank": 5,
+      "coordinates": [
+        166.933134,
+        -0.520768
+      ]
+    },
+    {
+      "key": "BB",
+      "code": "BRB",
+      "name": "Barbados",
+      "scalerank": 3,
+      "coordinates": [
+        -59.540578,
+        13.147695
+      ]
+    },
+    {
+      "key": "LS",
+      "code": "LSO",
+      "name": "Lesotho",
+      "scalerank": 0,
+      "coordinates": [
+        28.228623,
+        -29.57973
+      ]
+    },
+    {
+      "key": "SZ",
+      "code": "SWZ",
+      "name": "Swaziland",
+      "scalerank": 0,
+      "coordinates": [
+        31.480024,
+        -26.561914
+      ]
+    },
+    {
+      "key": "BI",
+      "code": "BDI",
+      "name": "Burundi",
+      "scalerank": 0,
+      "coordinates": [
+        29.875083,
+        -3.357425
+      ]
+    },
+    {
+      "key": "RW",
+      "code": "RWA",
+      "name": "Rwanda",
+      "scalerank": 0,
+      "coordinates": [
+        29.919059,
+        -1.992753
+      ]
+    },
+    {
+      "key": "BT",
+      "code": "BTN",
+      "name": "Bhutan",
+      "scalerank": 0,
+      "coordinates": [
+        90.403948,
+        27.410593
+      ]
+    },
+    {
+      "key": "Malta",
+      "code": "MLT",
+      "name": "Malta",
+      "scalerank": 5,
+      "coordinates": [
+        14.441358,
+        35.890604
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "key": "Seychelles",
+      "code": "SYC",
+      "name": "Seychelles",
+      "scalerank": 5,
+      "coordinates": [
+        55.478395,
+        -4.661813
+      ]
+    },
+    {
+      "key": "Mauritius",
+      "code": "MUS",
+      "name": "Mauritius",
+      "scalerank": 3,
+      "coordinates": [
+        57.569574,
+        -20.279331
+      ]
+    },
+    {
+      "key": "JM",
+      "code": "JAM",
+      "name": "Jamaica",
+      "scalerank": 1,
+      "coordinates": [
+        -77.319298,
+        18.154782
+      ]
+    },
+    {
+      "key": "IS",
+      "code": "ISL",
+      "name": "Iceland",
+      "scalerank": 0,
+      "coordinates": [
+        -18.596395,
+        64.998414
+      ]
+    },
+    {
+      "key": "IE",
+      "code": "IRL",
+      "name": "Ireland",
+      "scalerank": 0,
+      "coordinates": [
+        -8.138264,
+        53.176692
+      ]
+    },
+    {
+      "key": "Cyprus",
+      "code": "CYP",
+      "name": "Cyprus",
+      "scalerank": 1,
+      "coordinates": [
+        32.954073,
+        34.911421
+      ]
+    },
+    {
+      "key": "PW",
+      "code": "PLW",
+      "name": "Palau",
+      "scalerank": 5,
+      "coordinates": [
+        134.580157,
+        7.513824
+      ]
+    },
+    {
+      "key": "Vanuatu",
+      "code": "VUT",
+      "name": "Vanuatu",
+      "scalerank": 1,
+      "coordinates": [
+        167.475224,
+        -16.262639
+      ]
+    },
+    {
+      "key": "New Zealand",
+      "code": "NZL",
+      "name": "South I.",
+      "scalerank": 0,
+      "coordinates": [
+        170.5155,
+        -43.986376
+      ]
+    },
+    {
+      "key": "Australia",
+      "code": "AUS",
+      "name": "Australia",
+      "scalerank": 0,
+      "coordinates": [
+        124.966052,
+        -23.994212
+      ]
+    },
+    {
+      "key": "ZA",
+      "code": "ZAF",
+      "name": "South Africa",
+      "scalerank": 0,
+      "coordinates": [
+        25.159242,
+        -29.009216
+      ]
+    }
+  ]
+}

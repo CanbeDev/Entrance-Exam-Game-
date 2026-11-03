@@ -1,10 +1,12 @@
-# Functional frontend (Phase 3)
+# Geopolitics frontend
 
 The simple React interface now uses the Phase 2 client for registration/login,
 session restoration/logout, owner-game search/filter/paging/resume, country
 selection and creation, the ten-country board, phase-specific human controls,
 NPC stepping/visible fast-forward, committed history and public viewing.
-No Phase 4 design, audio or GroqCloud commentary has been added.
+The UI redesign, world atlas, battle animation, GroqCloud commentary and optional
+sound effects are implemented. Final connected acceptance of this working-tree
+release is tracked in the [Stage 9 report](../docs/UI_STAGE9_ACCEPTANCE_REPORT.md).
 
 Phase 3 passed 54 automated tests, TypeScript checks and the production build.
 On 2026-10-29, the user reported successful core manual browser acceptance against
@@ -12,7 +14,9 @@ the offline fixture. Automated Chrome testing was blocked before interaction
 because Computer Use could not determine the current URL confidently enough to
 enforce policy. Production browser acceptance remains pending. See
 [Phase 3 report](../docs/FRONTEND_PHASE3_REPORT.md).
-Stop for review before the next phase. The API/proxy notes below remain applicable.
+These Phase 3 results are historical. Current Stage 9 checks pass 358 public frontend
+tests, TypeScript, 43 contract components and the production build. The earlier
+blocked Chrome attempt is separate from later direct-CDP offline fixture testing.
 
 ## Safe local browser smoke procedure
 
@@ -55,6 +59,17 @@ npm.cmd test
 npm.cmd run build
 ```
 
+Public audio integrity is checked with `npm.cmd run check:sounds`; this uses the
+18 prepared files and reviewed manifest without private source MP3s. Source-copy
+verification is separate: privately supply the 19 originals at
+`frontend/public/assets/audio/`, then run `npm.cmd run test:sound-sources`.
+That explicit profile fails if sources are missing. Never deploy the private
+verification directory or its build; deploy the reviewed Git package without originals.
+
+Text-input checksums use canonical CRLF to preserve the existing identifiers on
+LF and CRLF checkouts. Generated API types, country facts and map geometry are
+unchanged. Run both map/reference `--check` scripts for offline data verification.
+
 Dependencies were installed with explicit user approval. `package-lock.json`
 pins the installed graph. Tests use Node's built-in test runner, injected fetch
 mocks and ephemeral loopback servers. No backend process, database client,
@@ -70,7 +85,7 @@ details or prior approvals are invented.
 ## Contracts and endpoints
 
 `scripts/generate-contracts.mjs` reads `../docs/openapi.json` without backend
-imports/network. It produces 40 component types and runtime schemas, including
+imports/network. It produces 43 component types and runtime schemas, including
 the source hash. Run `generate:api` after an approved schema change, then
 `check:contracts`, tests and build. Action discriminators are required explicitly
 on the wire. The small runtime validator supports the keywords used by this
@@ -78,7 +93,8 @@ export; it is not a general JSON Schema library.
 
 OpenAPI has untyped auth/catalog/public responses and does not describe the whole
 security contract. `contracts.ts` and parsers supplement it from actual routes,
-services and public models. There is no commentary contract in this backend yet.
+services and public models. Current contracts also include the implemented
+saved-commentary read and owner-only generation routes.
 
 | Client method | Backend operation (browser adds `/api`) |
 | --- | --- |
@@ -174,17 +190,17 @@ Observed headers alone do not prove complete response delivery. No raw exception
 request body, cookie, CSRF value or credential is logged. Successful reconciliation
 reports the original response issue and confirmed committed move separately.
 
-On an owned game, open **Optional NPC acceptance limit** and enter a maximum
-number of NPC POST attempts for this page. Zero blocks attempts; an unset limit
+The development-only acceptance tools can set a maximum number of NPC POST
+attempts for this page. This configuration is hidden in normal gameplay.
+Zero blocks attempts; an unset limit
 preserves normal fast-forward. Manual steps, fast-forward and retries share the
 counter. CSRF/ownership preparation does not consume an attempt. Fast-forward
 stops at the limit, a human turn, completion, Pause or an error. Pause lets an
 already-submitted action settle and prevents further scheduling.
 
 Changing the limit never resets attempts; reload does. This is a local acceptance
-aid, not a server-enforced lifetime quota. Reconcile earlier attempts, including
-failed attempts/retries, before setting a limit within the approved remaining
-30-attempt Stage F allowance. Never assume 30 attempts remain. There is no
+aid, not a server-enforced lifetime quota. Historical Stage F allowances do not
+establish a current remaining count or authorize another test. There is no
 five-second manual Pause requirement. Production recovery/testing and deployment
 still require separate approval; use the offline smoke fixture for local checks.
 
@@ -204,17 +220,17 @@ remains enabled. No Domain/Path/cookie-security rewrite is configured.
 
 ## Vercel production configuration and remaining browser acceptance
 
-Selected future Vercel Root Directory: `frontend`, Vite build, output `dist`.
+Vercel Root Directory: `frontend`, Vite build, output `dist`.
 `vercel.json` puts the `/api/:path*` rewrite before the SPA fallback and points to
 the user-supplied existing Render base URL. It strips `/api`, excludes API paths
-from SPA fallback, adds no-store and disables external rewrite caching. No Vercel
-frontend hostname is invented. The hostname is not required for this source
-configuration; it is required for the later exact trusted-origin setting.
+from SPA fallback, adds no-store and disables external rewrite caching.
+The approved production origin is
+`https://entrance-exam-game.vercel.app`.
 
 The [Vercel rewrite documentation](https://vercel.com/docs/routing/rewrites)
 supports external proxying with the original browser URL and documents cache
-controls. It does not establish that this undeployed project's browser Origin
-and session-cookie flow has passed. The configuration adds no Origin transform;
+controls. Source configuration alone does not verify a deployed browser Origin
+and session-cookie flow. The configuration adds no Origin transform;
 the required behavior is to forward the original Vercel Origin to Render.
 [Vite's proxy documentation](https://vite.dev/config/server-options#server-proxy)
 describes the development proxy mechanism. Its loopback forwarding is tested;
@@ -228,19 +244,19 @@ weaken cookie/Origin controls if forwarding fails. A successful auth flow with
 only the actual Vercel origin trusted supplies acceptance evidence; no new
 diagnostic endpoint/header logging is needed.
 
-Keep origins `[]` and both protected-write gates false until separate approval.
-Stage E enables auth only; gameplay stays false. Follow
-[Stage E](../docs/STAGE_E_AUTH_ACTIVATION.md). Stage F gameplay uses new owned
-games after authentication passes. The functional frontend and visible fast-forward
-are implemented locally. Production acceptance of gameplay and GroqCloud
-commentary, and the submission package, remain mandatory later work.
+New, unverified environments keep origins `[]` and both write gates false until
+separately approved. The owner has already reported production authentication
+and gameplay enabled; do not reconfigure that deployment based on historical
+activation prose. Use [Stage E](../docs/STAGE_E_AUTH_ACTIVATION.md) as historical
+procedure/evidence. Stage 9 uses human-operated connected gameplay; Codex does not
+access production. The current release and submission package still need acceptance.
 
-## AI battle commentary
+## Battle commentary
 
-Committed dice-exchange receipts have an **AI Battle Commentary** area alongside
+Committed dice-exchange receipts have a **Commentary** area alongside
 the original dice, losses, ownership events and NPC explanation. Public reads
-load saved narration. The game's authenticated owner can select **Generate AI
-commentary**. **AI commentary for new battles** defaults on for the authenticated
+load saved narration. The game's authenticated owner can select **Generate
+commentary**. **Commentary for new battles** defaults on for the authenticated
 owner, during both human play and NPC fast-forward. The owner can turn it off.
 Opening saved history or reloading starts at the current revision, so historical
 exchanges do not generate new billable work. New receipts use an independent
@@ -264,8 +280,15 @@ hour. A denied admission has a saved deterministic fallback and no Groq call.
 Spectators can also use **Check saved commentary** after an initial not-generated
 response, to retrieve narration completed later without a reload or billable POST.
 
-Groq output is labelled LLM-generated narration. Missing/unavailable narration
-shows a separately labelled deterministic battle summary. Spectators cannot
+Narration is generated by GroqCloud and appears as prose under Commentary; the
+gameplay heading has no provider/model badge. Deterministic fallbacks remain
+truthfully distinguished from provider narration. Spectators cannot
 request generation. No provider key or provider environment variable belongs in
 this frontend. Production provider availability and deployment acceptance remain
 separate checks; local tests use deterministic mocks only.
+
+### Audio Credits
+
+Sound effects were generated using [ElevenLabs](https://elevenlabs.io).
+
+These sound effects were created using the ElevenLabs Free plan for this non-commercial university entrance examination project.

@@ -1,0 +1,132 @@
+{
+  "provenance": "User-supplied; licensing not supplied",
+  "method": "Byte-identical copies; originals unchanged",
+  "files": [
+    {
+      "event": "attack",
+      "original": "Attack_Low_war-drum__#1-1793668282761.mp3",
+      "runtime": "/assets/sounds/attack.mp3",
+      "bytes": 73197,
+      "sha256": "e8f4490cf90b23aab5729e276c2bf427fc1a2996ebc5955f9b6fe77aa82738ae"
+    },
+    {
+      "event": "select",
+      "original": "Select_a_country_Sof_#3-1793668132463.mp3",
+      "runtime": "/assets/sounds/select.mp3",
+      "bytes": 13293,
+      "sha256": "fd6a964ab59e1b49ebd122d5da3a46f25ba1337f4d0b5897b025a87ba4b9b89e"
+    },
+    {
+      "event": "confirm",
+      "original": "Confirm_country_choi_#1-1793668213461.mp3",
+      "runtime": "/assets/sounds/confirm.mp3",
+      "bytes": 49581,
+      "sha256": "3e1cf4988f77ca567f89e1db150b5a7bb351912116c1c368b4bf08f4dfa7162c"
+    },
+    {
+      "event": "dice",
+      "original": "Heavy_wooden_dice_ro_#1-1793667977040.mp3",
+      "runtime": "/assets/sounds/dice.mp3",
+      "bytes": 97389,
+      "sha256": "686e658be7b0f948061814bdf9ffa9cbd057b0a0d14e51250567b1d01bae4e31"
+    },
+    {
+      "event": "tie",
+      "original": "Dice_tie_Neutral_woo_#2-1793668515789.mp3",
+      "runtime": "/assets/sounds/tie.mp3",
+      "bytes": 13293,
+      "sha256": "b3641526d752b91021acbefa26daff00f77c4485f601b8bbcbfe4e9b2b66cdae"
+    },
+    {
+      "event": "defenderLoss",
+      "original": "Enemy_loses_soldiers_#4-1793668430006.mp3",
+      "runtime": "/assets/sounds/defenderLoss.mp3",
+      "bytes": 49581,
+      "sha256": "ea62143ea1311824f3982b277589b1c2b50b00723d4215948f08577a30500ea1"
+    },
+    {
+      "event": "attackerLoss",
+      "original": "2._Your_soldiers_are_#3-1793668474509.mp3",
+      "runtime": "/assets/sounds/attackerLoss.mp3",
+      "bytes": 73197,
+      "sha256": "b433fe69087bad60d31969ac46f19e37a9a8f7d2b62dddfd6300b971d51bffbd"
+    },
+    {
+      "event": "conquer",
+      "original": "Conquer_a_country_Sh_#4-1793668563611.mp3",
+      "runtime": "/assets/sounds/conquer.mp3",
+      "bytes": 49581,
+      "sha256": "a6d12d05d2fd8865c9f7a2694e86f3902d6e5f233b6623f3ca21021522b24dc1"
+    },
+    {
+      "event": "transfer",
+      "original": "Transfer_soldiers_So_#1-1793668611702.mp3",
+      "runtime": "/assets/sounds/transfer.mp3",
+      "bytes": 97389,
+      "sha256": "4ec215fb2287914a39612ea934152b6fd80eac0875666dbb4422c8c25742a679"
+    },
+    {
+      "event": "allocate",
+      "original": "Allocate_reinforceme_#2-1793668652676.mp3",
+      "runtime": "/assets/sounds/allocate.mp3",
+      "bytes": 36909,
+      "sha256": "78cdc9528fc2fde7b0be4b079c6d8e51a3e3dfeca66a62490797865f6592142f"
+    },
+    {
+      "event": "endTurn",
+      "original": "End_turn_Paper_turnp_#1-1793668726970.mp3",
+      "runtime": "/assets/sounds/endTurn.mp3",
+      "bytes": 36909,
+      "sha256": "725fb8e530cefb24ccd80bd648f4c2c24c6199374ab4e3f9a8f15b232d4448d5"
+    },
+    {
+      "event": "npc",
+      "original": "NPC_Step_Quiet_clock_#4-1793668781417.mp3",
+      "runtime": "/assets/sounds/npc.mp3",
+      "bytes": 13293,
+      "sha256": "99966a716fd6c2a9c1a462b1e266a35244f34262ff5f5077f7928a30a17b3eb9"
+    },
+    {
+      "event": "fast",
+      "original": "Start_fast-forward_S_#1-1793668839457.mp3",
+      "runtime": "/assets/sounds/fast.mp3",
+      "bytes": 49581,
+      "sha256": "45da7bef18f7661e29c392aabf2e4594c5251a4e4f50134ff8ceadfcc93d167e"
+    },
+    {
+      "event": "pause",
+      "original": "Pause_Soft_mechanica_#1-1793668868441.mp3",
+      "runtime": "/assets/sounds/pause.mp3",
+      "bytes": 49581,
+      "sha256": "a9ae2688d03553b2794a7db16f5225281d56f5df0a5a9b8ee23e749ba6b63abd"
+    },
+    {
+      "event": "campaign",
+      "original": "Start_new_campaign_S_#3-1793668080452.mp3",
+      "runtime": "/assets/sounds/campaign.mp3",
+      "bytes": 97389,
+      "sha256": "e509d12e2e6e05e76fd13ac1dd1d53a113af178cff7e42c4f337554557e860f9"
+    },
+    {
+      "event": "victory",
+      "original": "Win_the_game_Full_vi_#2-1793668917760.mp3",
+      "runtime": "/assets/sounds/victory.mp3",
+      "bytes": 97389,
+      "sha256": "d7b3da31e91105591436e115010abaad15c31daea57dc595577c165472e2ae11"
+    },
+    {
+      "event": "defeat",
+      "original": "Lose_the_game_Somber_#1-1793668958052.mp3",
+      "runtime": "/assets/sounds/defeat.mp3",
+      "bytes": 73197,
+      "sha256": "5b04ac80312a85e07acd4d9d679896fd6878da159ea03ee504fb9d02b0f04cf0"
+    },
+    {
+      "event": "error",
+      "original": "Error_Gentle_two-ton_#3-1793669060770.mp3",
+      "runtime": "/assets/sounds/error.mp3",
+      "bytes": 49581,
+      "sha256": "62cc8e0c1e68fa685ae03d0e5b71d9ffa821b27516be12fa0db275f0c9b27565"
+    }
+  ]
+}
