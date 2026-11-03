@@ -75,7 +75,7 @@ export function AppView({ state, controller, now, origin, screen = 'home' }: {
     {state.notice && <p role="status">{state.notice}</p>}
     {state.error && <p role="alert">{state.error}</p>}
     {now < state.retryAt && <p role="status">Try again in {Math.ceil((state.retryAt - now) / 1000)} seconds.</p>}
-    {state.pending && !state.busy && <section className="geo-recovery" aria-label="Unresolved request">
+    {state.pending && !state.busy && !state.fastForward && <section className="geo-recovery" aria-label="Unresolved request">
       <h2>Confirm your submitted move</h2>
       <p>The outcome is not yet confirmed. The original request is saved in this page and new moves are locked. Keep this page open; do not reload or submit a replacement move.</p>
       <p>Original account: {state.pending.account.username}.</p>

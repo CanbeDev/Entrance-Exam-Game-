@@ -167,16 +167,33 @@ An unconfirmed retry rejection keeps the lock for review. Do not reload or leave
 while a saved request remains: it exists only in page memory. A new deployment
 does not migrate the pending operation from an already-open production tab.
 
-An uncertain NPC POST now pauses fast-forward and makes one bounded anonymous
+An uncertain NPC POST makes one bounded anonymous
 receipt lookup, followed by an anonymous board read only if the receipt matches.
 Confirmation checks the requested game route, successor revision, observed NPC,
 original turn sequence, decision evaluation and canonical server action ID. An
 advanced board revision alone is insufficient. Matching evidence and a usable
-authoritative board clear pending without another POST; fast-forward stays paused.
+authoritative board clear pending without another POST.
 Otherwise the same operation/account/payload remains locked. **Check committed
 outcome (read only)** repeats those reads explicitly, including when the NPC POST
 allowance is exhausted or the session has expired. It never sends authentication,
 CSRF or gameplay POSTs. Read-check failure preserves pending and Retry-After.
+
+If that initial check misses a late NPC commit, the existing five-second poll
+cycle makes at most three additional anonymous confirmation attempts for the
+same saved operation. These reads do not acquire gameplay busy, overlap another
+confirmation, replay a move or consume the NPC POST allowance. An active
+Fast-forward run waits automatically for that confirmation and then continues
+serially using the confirmed next revision. Its intent belongs only to the same
+page, game and session. Pause, navigation, explicit refresh, session change,
+blocking errors or exhausted checks cancel that intent permanently. Later manual
+confirmation never restores it; Resume requires a new click after settlement.
+Step and explicit saved-request retry never enable Fast-forward.
+
+Retries do not replenish the read allowance. After exhaustion, Fast-forward
+suspends, the saved request stays locked and explicit read-only confirmation
+remains available. An individual
+confirmation read still has the existing HTTP deadline; this is a bounded read
+count, not a guaranteed fifteen-second recovery time.
 
 Recovered transfers, dice/losses and explanations are merged into committed
 history. A targeted receipt cannot skip unloaded history pages or rewind newer
@@ -187,8 +204,10 @@ The HTTP deadline remains 20 seconds. Errors expose only sanitized kind/status,
 elapsed milliseconds, response/body/validation phase and observed header status.
 Network failures while reading a body differ from malformed JSON/schema errors.
 Observed headers alone do not prove complete response delivery. No raw exception,
-request body, cookie, CSRF value or credential is logged. Successful reconciliation
-reports the original response issue and confirmed committed move separately.
+request body, cookie, CSRF value or credential is logged. Automatic confirmation
+shows ordinary progress and retains Pause, without exposing manual recovery
+details. Successful confirmation uses a brief move-confirmed message. Technical
+errors and saved-request controls appear when manual intervention is required.
 
 The development-only acceptance tools can set a maximum number of NPC POST
 attempts for this page. This configuration is hidden in normal gameplay.

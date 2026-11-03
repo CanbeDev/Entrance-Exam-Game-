@@ -84,6 +84,20 @@ test('normal App composition exposes no acceptance configuration but retains con
   assert.equal(list.find(n => n.type === 'button' && n.props.children === 'Check committed outcome (read only)').props.disabled, false);
   assert.equal(list.find(n => n.type === controls.GameplayControls).props.npcLimitReached, true);
 });
+
+test('automatic NPC confirmation shows progress and Pause without manual recovery details until suspended', () => {
+  const state = fixtures.boardFixture('pending');
+  state.fastForward = true; state.busy = false; state.confirmingPending = true;
+  state.notice = 'Confirming the submitted NPC move. You can pause fast-forward.';
+  const controller = { api: {}, getSnapshot: () => state };
+  const running = html(app.AppView({ state, controller, now: 0, origin: 'https://example.invalid' }));
+  assert.match(running, /Pause NPC fast-forward/);
+  assert.match(running, /Confirming the submitted NPC move/);
+  assert.doesNotMatch(running, /Retry saved request|Check committed outcome|expected revision|Original account:/);
+  state.fastForward = false; state.confirmingPending = false;
+  const suspended = html(app.AppView({ state, controller, now: 0, origin: 'https://example.invalid' }));
+  assert.match(suspended, /Retry saved request|Check committed outcome/);
+});
 test('exhausted cap disables Step/Fast-forward handlers while Pause still invokes only the existing callback', () => {
   const calls = [], state = fixtures.boardFixture('npc');
   const element = controls.GameplayControls({ game: state.game, owner: true, disabled: false, fastForward: true,

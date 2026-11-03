@@ -30,7 +30,7 @@ async function setup(t, { turn = 1, game = true, timeoutMs = 250 } = {}) {
   const api = new GameApi({ timeoutMs, fetch: async (path, init) => {
     const url = new URL(path, 'http://offline.invalid');
     const route = url.pathname.replace(/^\/api/, '');
-    requests.push({ method: init.method, path: route,
+    requests.push({ method: init.method, path: route, credentials: init.credentials,
       ...(route.startsWith('/games') && init.body ? { body: JSON.parse(init.body),
         key: new Headers(init.headers).get('Idempotency-Key') } : {}) });
     const index = interceptors.findIndex((item) => item.method === init.method && item.route === route);
@@ -101,7 +101,11 @@ for (const condition of [401, 503, 'network', 'timeout', 'malformed', 403, 429])
     await f.controller.logout();
     await f.controller.authenticate(credentials, true);
     await f.controller.poll();
-    assert.equal(f.requests.length, count);
+    const reads = f.requests.slice(count);
+    assert.equal(reads.length, condition === 429 ? 0 : 1);
+    assert.ok(reads.every(r => r.method === 'GET' && r.path === `/games/${target}/events`
+      && r.credentials === 'omit'));
+    assert.equal(f.npcPosts().length, 1);
     assert.equal(f.state().pending, saved);
   });
 }
@@ -464,10 +468,12 @@ test('fast-forward stops when an authoritative NPC response completes the game',
   assert.equal(f.npcPosts().length, 1);
 });
 
-test('fast-forward stops after an uncertain response and explicit recovery never resumes it', async (t) => {
+test('fast-forward suspends after bounded checks cannot confirm an uncertain response; explicit retry never resumes it', async (t) => {
   const f = await setup(t);
   f.afterNext('POST', npcRoute, () => { throw new Error('Offline NPC reply lost'); });
   await f.controller.fastForward();
+  assert.equal(f.state().fastForward, true);
+  for (let i = 0; i < 3; i++) await f.controller.poll();
   assert.equal(f.state().fastForward, false);
   assert.equal(f.state().pending.kind, 'npc');
   await sleep(700);

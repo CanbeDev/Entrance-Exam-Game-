@@ -155,7 +155,8 @@ test('a hanging commentary request cannot serialize or delay authoritative human
   assert.equal(api.cachedGame(id).revision, 2);
 });
 
-test('commentary failures do not alter saved NPC identity, cap, Pause or recovery lock', async (t) => {
+for (const paused of [false, true]) {
+test(`commentary failure preserves saved NPC identity, cap and ${paused ? 'explicit Pause' : 'active confirmation intent'}`, async (t) => {
   const gameId = '000000000000000000000001';
   const mock = createMockApi({ seed: true });
   mock.games.set(gameId, { ...fixtureGame(gameId), current_turn: 1 });
@@ -170,6 +171,8 @@ test('commentary failures do not alter saved NPC identity, cap, Pause or recover
   controller.configureNpcBudget(1);
   mock.failNext('POST', `/games/${gameId}/npc-steps`, () => { throw new TypeError('Offline NPC interruption'); });
   await controller.fastForward();
+  assert.equal(controller.getSnapshot().fastForward, true);
+  if (paused) controller.pause();
   const before = controller.getSnapshot();
   assert.ok(before.pending);
   await assert.rejects(api.generateBattleCommentary(gameId, 1), { kind: 'network' });
@@ -178,8 +181,9 @@ test('commentary failures do not alter saved NPC identity, cap, Pause or recover
   assert.equal(after.pending, before.pending);
   assert.equal(after.npcAttempts, 1);
   assert.equal(after.npcAttemptBudget, 1);
-  assert.equal(after.fastForward, false);
+  assert.equal(after.fastForward, !paused);
 });
+}
 
 test('real commentary UI renders human/NPC narration, fallback/loading and spectator safety beside unchanged dice', async () => {
   const server = await createServer({ configFile: false, root: fileURLToPath(new URL('../', import.meta.url)),

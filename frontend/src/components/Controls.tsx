@@ -159,7 +159,9 @@ export function GameplayControls({ game, owner, disabled, fastForward, act, step
   const human = game.players?.find(p => p.kind === 'human');
   const eliminated = human && !game.countries!.some(c => c.owner_id === human.id);
   return <div className="geo-command-context">
-    {pending && <p className="geo-command__recovery" role="status">A submitted request remains saved. New moves are locked. Use the recovery controls above; do not submit a replacement move.</p>}
+    {pending && <p className="geo-command__recovery" role="status">{fastForward
+      ? 'Confirming the submitted NPC move before continuing. Pause remains available.'
+      : 'A submitted request remains saved. New moves are locked. Use the recovery controls above; do not submit a replacement move.'}</p>}
     {busy && <p role="status">An action is in progress. Keep this page open while its outcome is confirmed.</p>}
     {eliminated && <p>The human participant has been eliminated. The game is still active; you may continue the remaining NPC turns.</p>}
     {active.kind === 'human' ? <HumanControls game={game} disabled={locked} disabledReason={reason} latest={latest} act={act} />
