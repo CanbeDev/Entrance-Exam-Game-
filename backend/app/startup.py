@@ -11,6 +11,7 @@ from app.repositories.mongo_validators import mongo_validators
 from app.repositories.phase4_indexes import verify_required_indexes
 from app.security.environment import ConfigurationError, load_application_settings
 from app.services.phase4_context import build_phase4_context
+from app.npc_diagnostics import mongo_listeners
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ class StartupError(RuntimeError):
 
 def create_client(settings):
     return MongoClient(settings.mongodb_uri, connect=False, tls=settings.tls_required,
-                       serverSelectionTimeoutMS=5000, connectTimeoutMS=5000, socketTimeoutMS=10000)
+                       serverSelectionTimeoutMS=5000, connectTimeoutMS=5000, socketTimeoutMS=10000,
+                       event_listeners=mongo_listeners())
 
 
 def storage_readiness(client, database):

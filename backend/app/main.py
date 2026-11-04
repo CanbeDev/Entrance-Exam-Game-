@@ -1,4 +1,5 @@
 """ASGI entry point. Importing defines routes only; lifespan owns persistence."""
+import os
 from fastapi import FastAPI, HTTPException, Request
 from pymongo.errors import PyMongoError
 from pydantic import ValidationError
@@ -12,6 +13,7 @@ from app.api.dependencies import Phase4SecurityMiddleware, install_security_hand
 from app.security.environment import load_application_settings
 from app.services.public_game_service import public_game
 from app.startup import application_lifespan, create_client
+from app.npc_diagnostics import NpcPerformanceMiddleware
 
 
 class TrustedOriginCORS:
@@ -35,7 +37,8 @@ class TrustedOriginCORS:
         await cors(scope, receive, send)
 
 
-def create_app(*, settings_loader=load_application_settings, client_factory=create_client):
+def create_app(*, settings_loader=load_application_settings, client_factory=create_client,
+               npc_diagnostics_enabled=None):
     application = FastAPI(title="Geopolitics Game API", description="UCT INF4001N Entrance Exam 2027",
                           lifespan=application_lifespan(settings_loader, client_factory))
     application.state.phase4 = None
@@ -46,6 +49,11 @@ def create_app(*, settings_loader=load_application_settings, client_factory=crea
     application.include_router(countries_router)
     application.add_middleware(Phase4SecurityMiddleware)
     application.add_middleware(TrustedOriginCORS)
+    # Outer user middleware includes security rejections and streamed-body reads.
+    # Optional non-secret switch; no existing environment setting is changed.
+    if npc_diagnostics_enabled is None:
+        npc_diagnostics_enabled = os.environ.get("NPC_PERFORMANCE_DIAGNOSTICS", "true") == "true"
+    application.add_middleware(NpcPerformanceMiddleware, enabled=npc_diagnostics_enabled)
     install_security_handlers(application)
     application.include_router(auth_router)
     application.include_router(games_router)

@@ -11,6 +11,7 @@ from pymongo.errors import PyMongoError
 from app.engine.errors import (ActionIdConflict, GameRuleError, GameplayWritesDisabled,
                                PersistenceUnavailable, RevisionConflict, UnsupportedGame)
 from app.security.errors import SecurityError
+from app.npc_diagnostics import timed
 
 
 def phase4_path(path: str) -> bool:
@@ -37,10 +38,12 @@ def get_context(request: Request):
     return context
 
 
+@timed("authentication")
 def authenticated(request: Request, context=Depends(get_context)):
     return context.auth.authenticate(request.cookies.get(context.settings.cookie_name, ""))
 
 
+@timed("csrf_check")
 def authenticated_mutation(request: Request, principal=Depends(authenticated)):
     supplied = request.headers.get("X-CSRF-Token", "")
     if (not supplied or len(supplied) > 256

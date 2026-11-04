@@ -119,7 +119,11 @@ def test_client_construction_enforces_tls_lazy_connect_and_timeouts(monkeypatch)
     calls = []
     monkeypatch.setattr(startup, "MongoClient", lambda *args, **kwargs: calls.append((args, kwargs)))
     create_client(config(MONGODB_URI="mongodb+srv://cluster.example"))
-    assert calls[0][1] == {"tls": True, "connect": False, "serverSelectionTimeoutMS": 5000,
+    options = dict(calls[0][1])
+    listeners = options.pop("event_listeners")
+    from app.npc_diagnostics import NpcCommandListener, NpcPoolListener
+    assert [type(listener) for listener in listeners] == [NpcCommandListener, NpcPoolListener]
+    assert options == {"tls": True, "connect": False, "serverSelectionTimeoutMS": 5000,
                            "connectTimeoutMS": 5000, "socketTimeoutMS": 10000}
 
 

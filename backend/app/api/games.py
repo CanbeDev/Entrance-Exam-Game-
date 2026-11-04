@@ -8,8 +8,9 @@ from app.models.actions import ActionCommand, FrozenModel
 from app.models.game import GameSetupRequest
 from app.models.game_api import PublicGameList, PublicGame, PublicActionResult, PublicEventPage
 from app.services.public_game_service import public_game, public_result
+from app.npc_diagnostics import NpcTimingRoute, operation, span, timed
 
-router = APIRouter(tags=["game sessions"])
+router = APIRouter(tags=["game sessions"], route_class=NpcTimingRoute)
 
 
 class NpcStepRequest(FrozenModel):
@@ -42,9 +43,14 @@ def human_action(game_id: str, command: ActionCommand,
 
 
 @router.post("/games/{game_id}/npc-steps", response_model=PublicActionResult, response_model_exclude_unset=True)
+@timed("route_function")
 def npc_step(game_id: str, request: NpcStepRequest,
              principal=Depends(authenticated_mutation), context=Depends(get_context)):
-    return public_result(context.games.npc_step(principal, game_id, request.expected_revision))
+    result = context.games.npc_step(principal, game_id, request.expected_revision)
+    if result.npc_decision is not None:
+        operation(result.npc_decision.action.type)
+    with span("response_projection"):
+        return public_result(result)
 
 
 @router.get("/games/{game_id}/events", response_model=PublicEventPage, response_model_exclude_unset=True)

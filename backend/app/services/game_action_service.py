@@ -10,6 +10,7 @@ from app.engine.state_adapter import load_runtime
 from app.models.actions import ActionCommand, ActorContext, FrozenModel
 from app.models.events import ActionResult
 from app.models.npc import NpcDecision
+from app.npc_diagnostics import span
 
 
 class ActionReceipt(FrozenModel):
@@ -73,8 +74,10 @@ class GameActionService:
             raise RevisionConflict("Game revision changed; reload before submitting a new action")
         if npc_decision is not None:
             from app.engine.npc.explanations import validate_decision
-            validate_decision(state, actor, command.action, npc_decision)
-        result = apply_action(state, actor, command.action, self._dice, self._clock())
+            with span("npc_evidence_validation"):
+                validate_decision(state, actor, command.action, npc_decision)
+        with span("engine_action"):
+            result = apply_action(state, actor, command.action, self._dice, self._clock())
         if npc_decision is not None:
             result = ActionResult(state=result.state, events=result.events, npc_decision=npc_decision)
         receipt = ActionReceipt(game_id=game_id, fingerprint=fingerprint, actor=actor,

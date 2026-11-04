@@ -7,6 +7,7 @@ from app.models.actions import ActorContext, ActionCommand, FrozenModel
 from app.models.events import ActionResult
 from app.models.npc import NpcSubmission
 from app.services.game_action_service import ActionStore, GameActionService
+from app.npc_diagnostics import span, timed
 
 
 class NpcBatch(FrozenModel):
@@ -28,6 +29,7 @@ class NpcController:
         self._actions = action_service
         self._strategy = strategy if strategy is not None else NpcStrategy()
 
+    @timed("npc_state_load")
     def _load(self, game_id):
         document = self._repository.load_game(game_id)
         if document is None:
@@ -41,7 +43,8 @@ class NpcController:
         player = next(p for p in state.players if p.id == state.active_player_id)
         if player.kind == "human":
             return None
-        decision = self._strategy.decide(state)
+        with span("npc_decision"):
+            decision = self._strategy.decide(state)
         command = ActionCommand(action_id=f"npc-{decision.strategy_version}-{state.turn_sequence}-{state.revision}",
                                 expected_revision=state.revision, action=decision.action)
         return NpcSubmission(game_id=game_id, actor=ActorContext(player_id=player.id, kind="npc"),

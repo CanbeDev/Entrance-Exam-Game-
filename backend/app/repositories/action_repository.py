@@ -8,6 +8,7 @@ from pymongo.write_concern import WriteConcern
 from app.engine.errors import GameplayWritesDisabled, PersistenceUnavailable, RevisionConflict
 from app.models.events import ActionResult
 from app.services.game_action_service import ActionReceipt, replay_receipt
+from app.npc_diagnostics import span, timed
 
 
 def runtime_document(state) -> dict:
@@ -50,6 +51,7 @@ class MongoActionRepository:
     def _scope_update(self, query: dict) -> dict:
         return query
 
+    @timed("action_receipt_lookup")
     def find_receipt(self, game_id: str, action_id: str) -> ActionReceipt | None:
         self._authorize_access(game_id)
         object_id = self.object_id(game_id)
@@ -73,6 +75,7 @@ class MongoActionRepository:
         except PyMongoError:
             raise PersistenceUnavailable("Unable to read game") from None
 
+    @timed("receipt_commit")
     def commit(self, receipt: ActionReceipt) -> ActionResult:
         self._authorize_access(receipt.game_id)
         if not self._enabled:
@@ -90,6 +93,7 @@ class MongoActionRepository:
         state_document = runtime_document(receipt.result.state)
         receipt_document = {"_id": key, **receipt.model_dump(mode="json")}
 
+        @timed("game_transaction_body")
         def commit_once(session):
             # This callback may run more than once. Do not generate randomness here.
             self._authorize_access(receipt.game_id, session=session)
@@ -105,14 +109,16 @@ class MongoActionRepository:
             update = self._games.update_one(self._scope_update(query), {"$set": state_document}, session=session)
             if update.matched_count != 1:
                 raise RevisionConflict("Game revision changed; action was not committed")
-            self._receipts.insert_one(receipt_document, session=session)
+            with span("receipt_insert"):
+                self._receipts.insert_one(receipt_document, session=session)
             return receipt.result
 
         try:
             with self._client.start_session() as session:
-                return session.with_transaction(commit_once, read_concern=ReadConcern("snapshot"),
-                                                write_concern=WriteConcern("majority"),
-                                                read_preference=ReadPreference.PRIMARY)
+                with span("game_transaction"):
+                    return session.with_transaction(commit_once, read_concern=ReadConcern("snapshot"),
+                                                    write_concern=WriteConcern("majority"),
+                                                    read_preference=ReadPreference.PRIMARY)
         except (DuplicateKeyError, RevisionConflict):
             saved = self.find_receipt(receipt.game_id, receipt.command.action_id)
             if saved is not None:

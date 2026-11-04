@@ -14,6 +14,7 @@ from pymongo.write_concern import WriteConcern
 from app.models.auth import Principal
 from app.models.game_access import GameAccess, access_from_document
 from app.security.errors import SecurityError
+from app.npc_diagnostics import span, timed
 
 
 def utc(value: datetime) -> datetime:
@@ -30,6 +31,7 @@ class MongoSecurityRepository:
         self._auth_enabled = auth_writes_enabled is True
         self._gameplay_enabled = gameplay_writes_enabled is True
 
+    @timed("index_verification")
     def _required_indexes(self):
         # Do not let an earlier positive check authorize later writes after a
         # required index was removed. This only inspects metadata; never repairs it.
@@ -49,9 +51,11 @@ class MongoSecurityRepository:
     def _transaction(self, callback):
         try:
             with self._client.start_session() as session:
-                return session.with_transaction(callback, read_concern=ReadConcern("snapshot"),
-                                                write_concern=WriteConcern("majority"),
-                                                read_preference=ReadPreference.PRIMARY)
+                with span("auth_transaction"):
+                    return session.with_transaction(timed("auth_transaction_body")(callback),
+                                                    read_concern=ReadConcern("snapshot"),
+                                                    write_concern=WriteConcern("majority"),
+                                                    read_preference=ReadPreference.PRIMARY)
         except PyMongoError:
             raise SecurityError(503, "persistence_unavailable") from None
 
@@ -115,6 +119,7 @@ class MongoSecurityRepository:
             self._sessions.insert_one(document, session=session)
         self._transaction(issue)
 
+    @timed("authorization")
     def authorize(self, session_hash: str, now: datetime, idle_seconds: int, *, touch: bool = False,
                   session=None) -> Principal:
         if touch and session is None:
@@ -178,6 +183,7 @@ class MongoSecurityRepository:
         except PyMongoError:
             raise SecurityError(503, "persistence_unavailable") from None
 
+    @timed("owned_game_load")
     def _owned(self, game_id: str, principal: Principal, now: datetime, idle_seconds: int, *, session=None):
         self._principal(principal, now, idle_seconds, session=session)
         try:
@@ -282,6 +288,7 @@ class MongoSecurityRepository:
                                            gameplay_writes_enabled=enabled is True and self._gameplay_enabled,
                                            expected_access=expected_access)
 
+    @timed("npc_receipt_lookup")
     def find_npc_result(self, principal: Principal, game_id: str, revision: int,
                         now: datetime, idle_seconds: int):
         from app.services.game_action_service import ActionReceipt
