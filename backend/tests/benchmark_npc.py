@@ -101,7 +101,7 @@ def run_once(catalog, state, name, delay_ms):
     service = AuthorizedGameService(repository, settings, lambda: NOW, dice=dice, catalog=catalog)
     probe = Probe(delay_ms)
     for collection_name, collection in database.items():
-        for method in ("find_one", "find", "update_one", "insert_one", "find_one_and_update", "index_information"):
+        for method in ("find_one", "find", "aggregate", "update_one", "insert_one", "find_one_and_update", "index_information"):
             original = getattr(collection, method)
             setattr(collection, method, probe.db(collection_name + "." + method, original))
         collection.calls.clear()

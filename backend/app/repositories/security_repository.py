@@ -23,18 +23,29 @@ def utc(value: datetime) -> datetime:
 
 class MongoSecurityRepository:
     def __init__(self, client, database, *, auth_writes_enabled: bool = False,
-                 gameplay_writes_enabled: bool = False):
+                 gameplay_writes_enabled: bool = False, index_readiness=None, owned_lookup_compatible=False):
         self._client, self._database = client, database
         self._users, self._sessions = database["users"], database["auth_sessions"]
         self._limits, self._games = database["auth_rate_limits"], database["games"]
         self._receipts = database["game_action_receipts"]
         self._auth_enabled = auth_writes_enabled is True
         self._gameplay_enabled = gameplay_writes_enabled is True
+        self._index_readiness = index_readiness
+        # Managed startup has already connected. Never assume $lookup support on
+        # mongos/sharded foreign collections, or an uninitialized topology.
+        topology = getattr(client, "topology_description", None)
+        self._consolidated_owned_reads = (owned_lookup_compatible is True and
+            getattr(topology, "topology_type_name", None) == "ReplicaSetWithPrimary")
+
+    def _required_indexes(self):
+        if self._index_readiness is not None:
+            self._index_readiness.require_ready(self._database)
+        else:
+            self._verify_indexes()
 
     @timed("index_verification")
-    def _required_indexes(self):
-        # Do not let an earlier positive check authorize later writes after a
-        # required index was removed. This only inspects metadata; never repairs it.
+    def _verify_indexes(self):
+        # Unmanaged callers without a lifespan attestation remain fail-closed.  No DDL.
         from app.repositories.phase4_indexes import verify_required_indexes
         verify_required_indexes(self._database)
 
@@ -131,14 +142,7 @@ class MongoSecurityRepository:
         now = utc(now)
         try:
             document = self._sessions.find_one({"_id": session_hash}, session=session)
-            if document is None or document.get("revoked_at") is not None:
-                raise SecurityError(401, "authentication_required")
-            if (utc(document["expires_at"]) <= now
-                    or utc(document["last_seen_at"]) <= now - timedelta(seconds=idle_seconds)):
-                raise SecurityError(401, "authentication_required")
-            if not isinstance(document["user_id"], str):
-                raise ValueError("Invalid account identity")
-            user_id = ObjectId(document["user_id"])
+            user_id = self._session_user_id(document, now, idle_seconds)
             user = self._users.find_one({"_id": user_id, "status": "active",
                                        "auth_version": document["auth_version"]}, session=session)
             if user is None:
@@ -159,8 +163,7 @@ class MongoSecurityRepository:
                         "auth_version": user["auth_version"]}, {"$inc": {"authorization_revision": 1}}, session=session)
                     if result.matched_count != 1:
                         raise SecurityError(401, "authentication_required")
-            return Principal(user_id=str(user_id), username=user["username"], session_hash=session_hash,
-                             csrf_token=document["csrf_token"], auth_version=user["auth_version"])
+            return self._principal_document(user_id, user, document, session_hash)
         except (InvalidId, KeyError, TypeError, ValueError, AttributeError):
             raise SecurityError(401, "authentication_required") from None
         except PyMongoError:
@@ -168,6 +171,78 @@ class MongoSecurityRepository:
                 # Preserve driver labels until with_transaction has retried.
                 raise
             raise SecurityError(503, "persistence_unavailable") from None
+
+    @staticmethod
+    def _session_user_id(document, now, idle_seconds):
+        """Identical session validation for separate and consolidated reads."""
+        if document is None or document.get("revoked_at") is not None:
+            raise SecurityError(401, "authentication_required")
+        if (utc(document["expires_at"]) <= now
+                or utc(document["last_seen_at"]) <= now - timedelta(seconds=idle_seconds)):
+            raise SecurityError(401, "authentication_required")
+        if not isinstance(document["user_id"], str):
+            raise ValueError("Invalid account identity")
+        return ObjectId(document["user_id"])
+
+    @staticmethod
+    def _principal_document(user_id, user, document, session_hash):
+        if user is None:
+            raise SecurityError(401, "authentication_required")
+        return Principal(user_id=str(user_id), username=user["username"], session_hash=session_hash,
+                         csrf_token=document["csrf_token"], auth_version=user["auth_version"])
+
+    @timed("authorization")
+    def _owned_joined(self, game_id, principal, now, idle_seconds):
+        """One fresh read-only command, never used in a transaction or cached.
+
+        All root/foreign matches use constant unique _id keys. The user join also
+        applies exactly the existing active/auth-version predicate. No receipt is
+        returned here; every receipt checkpoint still executes independently.
+        """
+        def identifier(value):
+            try:
+                return ObjectId(value) if isinstance(value, str) else None
+            except (InvalidId, TypeError):
+                return None
+
+        if (not isinstance(principal.session_hash, str)
+                or re.fullmatch(r"[0-9a-f]{64}", principal.session_hash) is None):
+            raise SecurityError(401, "authentication_required")
+        object_id, user_id = identifier(game_id), identifier(principal.user_id)
+        pipeline = [
+            {"$match": {"_id": principal.session_hash}},
+            {"$project": {"_id": 0, "session": "$$ROOT"}},
+            {"$lookup": {"from": "users", "let": {"version": "$session.auth_version"},
+                "pipeline": [{"$match": {"_id": user_id, "status": "active",
+                    "$expr": {"$eq": ["$auth_version", "$$version"]}}},
+                    {"$project": {"_id": 1, "username": 1, "auth_version": 1}}], "as": "users"}},
+            {"$lookup": {"from": "games", "pipeline": [{"$match": {"_id": object_id}}], "as": "games"}},
+        ]
+        try:
+            rows = list(self._sessions.aggregate(pipeline, batchSize=2))
+        except PyMongoError as error:
+            # Wrapping a near-limit legacy game can exceed the BSON result limit.
+            # Only this read-only size failure falls back to the original reads.
+            if getattr(error, "code", None) == 10334:
+                return None
+            raise SecurityError(503, "persistence_unavailable") from None
+        try:
+            row = rows[0] if rows else {"session": None, "users": [], "games": []}
+            document = row["session"]
+            actual_id = self._session_user_id(document, utc(now), idle_seconds)
+            user = row["users"][0] if row["users"] else None
+            actual = self._principal_document(actual_id, user, document, principal.session_hash)
+            if actual.user_id != principal.user_id or actual.auth_version != principal.auth_version:
+                raise SecurityError(401, "authentication_required")
+        except (InvalidId, KeyError, TypeError, ValueError, AttributeError):
+            raise SecurityError(401, "authentication_required") from None
+        if object_id is None or not row["games"]:
+            raise SecurityError(404, "game_not_found")
+        game = row["games"][0]
+        access = access_from_document(game)
+        if access.owner_user_id != principal.user_id:
+            raise SecurityError(403, "game_not_owned")
+        return game, access
 
     def _principal(self, principal: Principal, now: datetime, idle_seconds: int, *, session=None):
         actual = self.authorize(principal.session_hash, now, idle_seconds, touch=session is not None, session=session)
@@ -185,6 +260,10 @@ class MongoSecurityRepository:
 
     @timed("owned_game_load")
     def _owned(self, game_id: str, principal: Principal, now: datetime, idle_seconds: int, *, session=None):
+        if self._consolidated_owned_reads and session is None:
+            joined = self._owned_joined(game_id, principal, now, idle_seconds)
+            if joined is not None:
+                return joined
         self._principal(principal, now, idle_seconds, session=session)
         try:
             if not isinstance(game_id, str):
@@ -290,9 +369,11 @@ class MongoSecurityRepository:
 
     @timed("npc_receipt_lookup")
     def find_npc_result(self, principal: Principal, game_id: str, revision: int,
-                        now: datetime, idle_seconds: int):
+                        now: datetime, idle_seconds: int, *, expected_access: GameAccess | None = None):
         from app.services.game_action_service import ActionReceipt
-        self._owned(game_id, principal, now, idle_seconds)
+        _, access = self._owned(game_id, principal, now, idle_seconds)
+        if expected_access is not None and access != expected_access:
+            raise SecurityError(403, "game_access_changed")
         try:
             document = self._receipts.find_one({"game_id": str(ObjectId(game_id)), "command.expected_revision": revision,
                                                "actor.kind": "npc"})

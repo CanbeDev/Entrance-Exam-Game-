@@ -28,7 +28,7 @@ _SPANS = frozenset({
     "game_transaction", "game_transaction_body", "receipt_insert", "response_projection",
 })
 _COMMANDS = {
-    "find": "read", "getMore": "read", "insert": "write", "update": "write",
+    "find": "read", "getMore": "read", "aggregate": "read", "insert": "write", "update": "write",
     "findAndModify": "write", "delete": "write", "listIndexes": "metadata",
     "listCollections": "metadata", "commitTransaction": "transaction",
     "abortTransaction": "transaction", "killCursors": "other",

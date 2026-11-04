@@ -45,7 +45,7 @@ class MongoActionRepository:
         # ObjectId has a fixed 24-character representation; command IDs forbid ':'.
         return f"{game_id}:{action_id}"
 
-    def _authorize_access(self, game_id: str, *, session=None) -> None:
+    def _authorize_access(self, game_id: str, *, session=None) -> dict | None:
         """Trusted local repository has no account boundary; scoped adapters override."""
 
     def _scope_update(self, query: dict) -> dict:
@@ -54,6 +54,10 @@ class MongoActionRepository:
     @timed("action_receipt_lookup")
     def find_receipt(self, game_id: str, action_id: str) -> ActionReceipt | None:
         self._authorize_access(game_id)
+        return self._read_receipt(game_id, action_id)
+
+    def _read_receipt(self, game_id: str, action_id: str) -> ActionReceipt | None:
+        """Internal lookup, only immediately after the caller authorizes access."""
         object_id = self.object_id(game_id)
         if object_id is None:
             return None
@@ -84,7 +88,7 @@ class MongoActionRepository:
         if object_id is None:
             raise RevisionConflict("Invalid game ID")
         key = self.receipt_id(str(object_id), receipt.command.action_id)
-        existing = self.find_receipt(receipt.game_id, receipt.command.action_id)
+        existing = self._read_receipt(receipt.game_id, receipt.command.action_id)
         if existing is not None:
             return replay_receipt(existing, receipt.fingerprint)
         expected = receipt.command.expected_revision

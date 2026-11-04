@@ -12,13 +12,14 @@ class ScopedMongoActionRepository(MongoActionRepository):
         self._game_id, self._now, self._idle = game_id, now, idle_seconds
         self._access = expected_access
 
-    def _authorize_access(self, game_id: str, *, session=None) -> None:
+    def _authorize_access(self, game_id: str, *, session=None) -> dict:
         if game_id != self._game_id:
             raise SecurityError(403, "game_not_owned")
-        _, access = self._security._owned(game_id, self._principal, self._now(), self._idle, session=session)
+        document, access = self._security._owned(game_id, self._principal, self._now(), self._idle, session=session)
         if self._access is not None and access != self._access:
             raise SecurityError(403, "game_access_changed")
         self._access = access
+        return document
 
     def _scope_update(self, query: dict) -> dict:
         if self._access is None:
@@ -27,5 +28,6 @@ class ScopedMongoActionRepository(MongoActionRepository):
                 "access.human_player_id": self._access.human_player_id, "access.version": self._access.version}
 
     def load_game(self, game_id: str) -> dict | None:
-        document = super().load_game(game_id)
-        return None if document is None else runtime_payload(document)
+        # _owned already fetched this exact authoritative game while checking
+        # current session/account/access. Reuse that one read, never a cached state.
+        return runtime_payload(self._authorize_access(game_id))

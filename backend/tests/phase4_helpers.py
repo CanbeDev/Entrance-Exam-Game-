@@ -162,9 +162,11 @@ class MemorySecurityStore:
     def action_store(self, principal, game_id, now, idle_seconds, *, enabled, expected_access=None):
         return MemoryScopedActionStore(self, principal, game_id, now, idle_seconds, enabled, expected_access)
 
-    def find_npc_result(self, principal, game_id, revision, now, idle_seconds):
+    def find_npc_result(self, principal, game_id, revision, now, idle_seconds, *, expected_access=None):
         with self.lock:
-            self._owned(game_id, principal, self._now(now), idle_seconds)
+            document = self._owned(game_id, principal, self._now(now), idle_seconds)
+            if expected_access is not None and access_from_document(document) != expected_access:
+                raise SecurityError(403, "game_access_changed")
             self.receipt_reads += 1
             return next((receipt.result for receipt in self.receipts.values()
                          if receipt.game_id == game_id and receipt.actor.kind == "npc"

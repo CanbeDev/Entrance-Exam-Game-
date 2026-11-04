@@ -72,6 +72,42 @@ class Collection:
         self.calls.append(("find", copy.deepcopy(query), None))
         return Cursor(copy.deepcopy([doc for doc in self.docs.values() if matches(doc, query)]))
 
+    def aggregate(self, pipeline, **kwargs):
+        assert kwargs == {"batchSize": 2}, "Consolidation is bounded and outside transactions"
+        self.calls.append(("aggregate", copy.deepcopy(pipeline), None))
+        def expression(value, document, variables):
+            if value == "$$ROOT":
+                return copy.deepcopy(document)
+            if isinstance(value, str) and value.startswith("$$"):
+                return variables.get(value[2:])
+            if isinstance(value, str) and value.startswith("$"):
+                return field(document, value[1:])
+            return value
+        def evaluate(documents, stages, variables=None):
+            variables = variables or {}
+            for stage in stages:
+                if "$match" in stage:
+                    query = dict(stage["$match"])
+                    expr = query.pop("$expr", None)
+                    documents = [doc for doc in documents if matches(doc, query)
+                        and (expr is None or expression(expr["$eq"][0], doc, variables)
+                             == expression(expr["$eq"][1], doc, variables))]
+                elif "$project" in stage:
+                    projection = stage["$project"]
+                    documents = [{key: (copy.deepcopy(doc[key]) if value == 1 else expression(value, doc, variables))
+                                  for key, value in projection.items() if value != 0 and (value != 1 or key in doc)}
+                                 for doc in documents]
+                elif "$lookup" in stage:
+                    lookup = stage["$lookup"]
+                    for doc in documents:
+                        bindings = {key: expression(value, doc, variables) for key, value in lookup.get("let", {}).items()}
+                        foreign = copy.deepcopy(list(self.database[lookup["from"]].docs.values()))
+                        doc[lookup["as"]] = evaluate(foreign, lookup["pipeline"], bindings)
+                else:
+                    raise AssertionError("Unsupported test aggregation stage")
+            return documents
+        return evaluate(copy.deepcopy(list(self.docs.values())), pipeline)
+
     def insert_one(self, document, **kwargs):
         self.calls.append(("insert", copy.deepcopy(document), kwargs.get("session")))
         if self.fail_insert:
@@ -152,6 +188,7 @@ class Session:
 class Client:
     def __init__(self, database):
         self.database = database
+        self.topology_description = SimpleNamespace(topology_type_name="ReplicaSetWithPrimary")
         self.before_transaction = None
         self.repeat = False
         self.retry_transient = False
@@ -169,8 +206,11 @@ def setup_store(catalog, *, enabled=True):
             specification = copy.deepcopy(dict(index.document))
             specification["key"] = list(specification["key"].items())
             database[name].indexes[specification["name"]] = specification
+    for collection in database.values():
+        collection.database = database
     client = Client(database)
-    repository = MongoSecurityRepository(client, database, auth_writes_enabled=enabled, gameplay_writes_enabled=enabled)
+    repository = MongoSecurityRepository(client, database, auth_writes_enabled=enabled, gameplay_writes_enabled=enabled,
+                                         owned_lookup_compatible=True)
     user_id, game_id = ObjectId(), ObjectId()
     user = {"_id": user_id, "username": "Alice", "username_key": "alice", "password_hash": "encoded-test-hash",
             "status": "active", "auth_version": 1, "authorization_revision": 0, "created_at": NOW}
@@ -558,6 +598,7 @@ def test_in_transaction_owned_read_preserves_raw_driver_error(catalog, monkeypat
     with pytest.raises(OperationFailure) as caught:
         repository._owned(game_id, principal, NOW, 1800, session=object())
     assert caught.value is failure and caught.value.has_error_label("TransientTransactionError")
+    monkeypatch.setattr(database["auth_sessions"], "aggregate", unavailable)
     with pytest.raises(SecurityError) as outside:
         repository.load_owned_game(game_id, principal, NOW, 1800)
     assert outside.value.code == "persistence_unavailable"

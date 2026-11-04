@@ -12,7 +12,8 @@ class Phase4Context:
     games: AuthorizedGameService
 
 
-def build_phase4_context(client, database, settings: SecuritySettings, *, clock=None, dice=None):
+def build_phase4_context(client, database, settings: SecuritySettings, *, clock=None, dice=None,
+                         index_readiness=None):
     """Compose injected services after managed startup readiness checks.
 
     The caller supplies an already authorized database dependency. Constructors do
@@ -20,6 +21,9 @@ def build_phase4_context(client, database, settings: SecuritySettings, *, clock=
     """
     from app.repositories.security_repository import MongoSecurityRepository
     store = MongoSecurityRepository(client, database, auth_writes_enabled=settings.auth_writes_enabled,
-                                    gameplay_writes_enabled=settings.gameplay_writes_enabled)
+                                    gameplay_writes_enabled=settings.gameplay_writes_enabled,
+                                    index_readiness=index_readiness,
+                                    owned_lookup_compatible=(index_readiness is not None
+                                                             and index_readiness.owned_lookup_compatible))
     return Phase4Context(settings, AuthService(store, settings, clock=clock),
                          AuthorizedGameService(store, settings, clock=clock, dice=dice))

@@ -8,7 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.repositories.game_repository import MongoGameRepository
 from app.repositories.mongo_validators import mongo_validators
-from app.repositories.phase4_indexes import verify_required_indexes
+from app.repositories.phase4_indexes import IndexReadiness, verify_required_indexes
 from app.security.environment import ConfigurationError, load_application_settings
 from app.services.phase4_context import build_phase4_context
 from app.npc_diagnostics import mongo_listeners
@@ -26,7 +26,7 @@ def create_client(settings):
                        event_listeners=mongo_listeners())
 
 
-def storage_readiness(client, database):
+def storage_readiness(client, database, *, index_readiness=None):
     """Read metadata only. Does not prove transaction privileges or scan old data."""
     try:
         hello = client.admin.command("hello")
@@ -37,7 +37,10 @@ def storage_readiness(client, database):
             not hello.get("isWritablePrimary") or hello.get("maxWireVersion", 0) < 8):
         return "transactions_unavailable"
     try:
-        verify_required_indexes(database)
+        if index_readiness is None:
+            verify_required_indexes(database)
+        else:
+            index_readiness.ensure()
     except Exception:
         return "indexes_not_ready"
     try:
@@ -49,6 +52,8 @@ def storage_readiness(client, database):
                     options.get("validationLevel", "strict") != "strict" or
                     options.get("validationAction", "error") != "error"):
                 return "validators_not_ready"
+        if index_readiness is not None:
+            index_readiness.attest_read_collations(metadata)
     except Exception:
         return "validator_check_unavailable"
     return "ready"
@@ -58,6 +63,7 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
     @asynccontextmanager
     async def lifespan(app):
         client = None
+        index_readiness = None
         app.state.phase4 = None
         app.state.commentary = None
         app.state.mongo_client = None
@@ -72,15 +78,17 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
                 raise ConfigurationError() from None
 
             def initialize():
-                nonlocal client
+                nonlocal client, index_readiness
                 try:
                     client = client_factory(settings)
                     client.admin.command("ping")
                     database = client[settings.database_name]
-                    readiness = storage_readiness(client, database)
+                    index_readiness = IndexReadiness(database)
+                    readiness = storage_readiness(client, database, index_readiness=index_readiness)
                     if (settings.security.auth_writes_enabled or settings.security.gameplay_writes_enabled) and readiness != "ready":
                         raise StartupError(readiness)
-                    context = build_phase4_context(client, database, settings.security)
+                    context = build_phase4_context(client, database, settings.security,
+                                                   index_readiness=index_readiness)
                     reader = MongoGameRepository(database["games"]).get_game
                     return context, reader, readiness
                 except StartupError:
@@ -106,6 +114,8 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
             app.state.mongo_client = None
             app.state.game_reader = None
             app.state.phase4_readiness = "stopped"
+            if index_readiness is not None:
+                index_readiness.close()
             if client is not None:
                 try:
                     await run_in_threadpool(client.close)

@@ -35,7 +35,8 @@ class AuthorizedGameService:
         return actual
 
     def _owned(self, principal, game_id):
-        principal = self._principal(principal)
+        # load_owned_game revalidates this principal and ownership together.
+        self.settings.require_auth_writes()
         record = self.store.load_owned_game(game_id, principal, self.clock(), self.settings.idle_seconds)
         return principal, record
 
@@ -99,9 +100,10 @@ class AuthorizedGameService:
             raise SecurityError(422, "invalid_revision")
         self._rate(principal, game_id)
         scoped, actions = self._actions(principal, game_id, access_from_document(record))
-        # Retain the access tuple observed at facade entry, including on replay.
-        scoped.load_game(game_id)
-        saved = self.store.find_npc_result(principal, game_id, expected_revision, self.clock(), self.settings.idle_seconds)
+        # The receipt lookup checks the original access tuple against its fresh
+        # owned-game read, including on replay; no separate discarded state load.
+        saved = self.store.find_npc_result(principal, game_id, expected_revision, self.clock(),
+                                           self.settings.idle_seconds, expected_access=access_from_document(record))
         if saved is not None:
             return saved
         state = load_runtime(runtime_payload(record))
