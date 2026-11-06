@@ -8,6 +8,8 @@ import { BattleExchange } from './BattleExchange.tsx';
 import { createExchangeLedger } from './battle-view.ts';
 import { chronicleEntries, chronicleWindow, receiptRound, receiptTime } from './chronicle-view.ts';
 import './chronicle.css';
+import { participantCountryName } from './refresh-view.ts';
+import { actionSummary } from './gameplay-view.ts';
 
 const names: Record<PublicGameEvent['type'], string> = {
   attack_started: 'Attack started', dice_exchange: 'Dice exchange', conquered: 'Country conquered',
@@ -89,7 +91,7 @@ export function History({ game, events, latest, more, disabled, loadMore, api, g
     {latest && !latestRecorded && <section className="geo-chronicle__latest" aria-label="Latest submitted move">
       <h3>Latest move</h3>
       <ul>{latest.events.map((event, i) => <Event event={event} game={game} key={i} />)}</ul>
-      {latest.npc_decision && <p>NPC explanation: {latest.npc_decision.explanation}</p>}
+      {latest.npc_decision && <aside className="geo-chronicle__reason"><h4>{participantCountryName(game, latest.events[0]?.actor_id)}’s Strategy</h4><p>{latest.npc_decision.explanation}</p></aside>}
     </section>}
     {entries.length === 0 && <p>No committed moves yet.</p>}
     <ol className="geo-chronicle__entries" aria-label="Committed moves, latest first">
@@ -122,15 +124,15 @@ function ChronicleEntry({ entry, initiallyOpen, game, gameId, api, ledger, previ
     }}>
       <summary><span className="geo-chronicle__meta">{round !== null ? `Round ${round} · ` : ''}Move {entry.revision}</span>
         <span className="geo-chronicle__actor">{participantName(game, entry.actor.player_id)}</span>
-        <span className="geo-chronicle__summary">{[...new Set(entry.events.map(event => names[event.type]))].join(' · ') || 'Event details not recorded'}</span>
+        <span className="geo-chronicle__summary">{entry.events.map(event => actionSummary(game, event)).join(' ') || 'Event details not recorded'}</span>
       </summary>
       {visited && <div className="geo-chronicle__body">
         {time && <time className="geo-help" dateTime={entry.committed_at}>{time}</time>}
         <ul className="geo-chronicle__events">{entry.events.map((event, i) => event.type === 'dice_exchange'
           ? <li key={i}><BattleExchange game={game} entry={entry} index={i} gameId={gameId} ledger={ledger} previous={previous} /></li>
           : <Event event={event} game={game} key={i} />)}</ul>
-        {entry.npc_decision?.explanation && <aside className="geo-chronicle__reason" aria-label="Recorded NPC reasoning">
-          <h4>NPC explanation</h4><p>{entry.npc_decision.explanation}</p></aside>}
+        {entry.npc_decision?.explanation && <aside className="geo-chronicle__reason" aria-label="Recorded strategic reasoning">
+          <h4>{participantCountryName(game, entry.actor.player_id)}’s Strategy</h4><p className="geo-saved-justification">{entry.npc_decision.explanation}</p></aside>}
         {entry.events.some(event => event.type === 'dice_exchange') && <BattleCommentaryPanel
           api={api} gameId={gameId} game={game} entry={entry} canGenerate={canGenerate}
           automatic={automatic} permitted={permitted} />}

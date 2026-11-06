@@ -14,9 +14,11 @@ the offline fixture. Automated Chrome testing was blocked before interaction
 because Computer Use could not determine the current URL confidently enough to
 enforce policy. Production browser acceptance remains pending. See
 [Phase 3 report](../docs/FRONTEND_PHASE3_REPORT.md).
-These Phase 3 results are historical. Current Stage 9 checks pass 358 public frontend
-tests, TypeScript, 43 contract components and the production build. The earlier
-blocked Chrome attempt is separate from later direct-CDP offline fixture testing.
+These Phase 3 and earlier Stage 9 results are historical. The final frontend
+freeze passes 411 public frontend tests, TypeScript, 43 contract components and
+the production build. See the [release record](../docs/FRONTEND_UI_RELEASE.md).
+The earlier blocked Chrome attempt is separate from later direct-CDP offline
+fixture testing; local fixture evidence does not establish production connectivity.
 
 ## Safe local browser smoke procedure
 

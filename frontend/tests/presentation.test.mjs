@@ -68,7 +68,7 @@ test('human victory, spectator result and NPC victory use truthful distinct head
   const human=render('ResultPoster',{game:game('completed'),owner:true});
   assert.match(human,/id="campaign-result-outcome">Victory/);assert.match(human,/World Conqueror/);assert.match(human,/The world is yours/);assert.match(human,/Human winner/);
   const npc=render('ResultPoster',{game:game('npc-victory'),owner:true});
-  assert.match(npc,/Campaign Over/);assert.match(npc,/Norway has won/);assert.match(npc,/NPC winner/);assert.doesNotMatch(npc,/The world is yours|World Conqueror/);
+  assert.match(npc,/Campaign Over/);assert.match(npc,/Norway has won/);assert.match(npc,/Rival winner/);assert.doesNotMatch(npc,/The world is yours|World Conqueror/);
   const spectator=render('ResultPoster',{game:game('completed'),owner:false});
   assert.match(spectator,/Brazil has won/);assert.doesNotMatch(spectator,/The world is yours/);
 });

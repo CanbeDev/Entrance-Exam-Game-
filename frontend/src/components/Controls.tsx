@@ -4,6 +4,7 @@ import type { ActionCommand, PublicActionResult, PublicCountry, PublicGame } fro
 import { activeParticipant, participantName, playable } from '../game/view.ts';
 import { Button, NumericStepper, StatusIndicator } from '../ui/components.tsx';
 import './controls.css';
+import { npcActivity } from './refresh-view.ts';
 
 type Action = ActionCommand['action'];
 export interface ControlDraft {
@@ -55,7 +56,7 @@ export function HumanControlsView({ game, disabled, act, disabledReason, latest,
     const amounts = owned.map(c => draft.allocations[c.id] ?? 0);
     const total = amounts.reduce((sum, amount) => sum + amount, 0);
     const valid = amounts.every(n => Number.isSafeInteger(n) && n >= 0 && n <= pool!) && total === pool;
-    content = <><CommandHeader title="Place reinforcements"><p>Allocate {pool} reinforcements across the countries you hold.</p></CommandHeader>
+    content = <><CommandHeader title="Deploy reinforcements"><p>Allocate {pool} reinforcements across the countries you hold.</p></CommandHeader>
       <p className="geo-command__budget" data-valid={valid}>{pool! - total} remaining · {total} of {pool} assigned</p>
       <form onSubmit={event => { event.preventDefault(); if (valid) submit({ type: 'allocate',
         allocations: owned.map((c, i) => ({ country_id: c.id, amount: amounts[i] })).filter(a => a.amount > 0) }); }}>
@@ -64,21 +65,21 @@ export function HumanControlsView({ game, disabled, act, disabledReason, latest,
             value={Number.isSafeInteger(draft.allocations[c.id]) && draft.allocations[c.id]! >= 0 && draft.allocations[c.id]! <= pool! ? draft.allocations[c.id]! : 0}
             disabled={disabled} onChange={amount => update({ allocations: { ...draft.allocations, [c.id]: amount } })} />)}
         </fieldset>
-        <Button type="submit" disabled={disabled || !valid} disabledReason={disabled ? reason : 'Allocate the full reinforcement budget before submitting.'}>Allocate reinforcements</Button>
+        <Button type="submit" disabled={disabled || !valid} disabledReason={disabled ? reason : 'Allocate the full reinforcement budget before submitting.'}>Deploy reinforcements</Button>
       </form><p className="geo-help">The server supplies this pool. Reinforcements begin in round 2.</p></>;
   } else if (game.phase === 'attacking') {
     const attacker = owned.find(c => c.id === game.battle?.source_id), defender = enemies.find(c => c.id === game.battle?.target_id);
     const battleValid = !!attacker && !!defender && attacker.soldiers > 1 && defender.soldiers > 0;
-    content = <><CommandHeader title="Attack in progress"><p>The countries stay locked for this attack.</p></CommandHeader>
+    content = <><CommandHeader title="Battle underway"><p>The countries stay locked for this attack.</p></CommandHeader>
       {attacker && defender ? <div className="geo-command__comparison" data-ready="true"><CountrySummary country={attacker} label="FROM" /><span className="geo-command__direction" aria-label="Attacking">↓</span><CountrySummary country={defender} label="TARGET" /></div>
         : <p>The current battle pair is unavailable. Refresh before continuing.</p>}
       {battleValid && <p>Next exchange: {Math.min(attacker!.soldiers - 1, defender!.soldiers)} dice each side. One soldier stays behind; tied pairs lose nothing.</p>}
-      <h3 className="geo-heading-md">Keep attacking?</h3>
+      <h3 className="geo-heading-md">Continue the assault?</h3>
       <div className="geo-command__actions"><Button disabled={disabled || !battleValid} disabledReason={disabled ? reason : 'A valid active battle is required.'}
         onClick={() => { if (battleValid) submit({ type: 'roll' }); }}>Roll battle dice</Button>
         <Button variant="secondary" disabled={disabled || !battleValid} disabledReason={disabled ? reason : 'A valid active battle is required.'}
-          onClick={() => { if (battleValid) submit({ type: 'stop_attack' }); }}>Stop attack and end turn</Button></div>
-      <p className="geo-help">Transfers are unavailable during an attack. Committed dice, losses and narration remain in Moves and battles.</p></>;
+          onClick={() => { if (battleValid) submit({ type: 'stop_attack' }); }}>End assault and turn</Button></div>
+      <p className="geo-help">Transfers are unavailable during an attack. Committed dice, losses and narration remain in the Chronicle.</p></>;
   } else if (game.phase === 'deciding' || game.phase === 'post_attack') {
     const post = game.phase === 'post_attack';
     const transferSource = sources.find(c => c.id === draft.transferSourceId);
@@ -88,7 +89,7 @@ export function HumanControlsView({ game, disabled, act, disabledReason, latest,
     const attackValid = !!source && !!target;
     const attackReason = !sources.length ? 'An owned country needs at least two soldiers to attack.'
       : !enemies.length ? 'No rival target is available.' : !source ? 'Choose an attacking country.' : 'Choose a rival target.';
-    content = <><CommandHeader title={post ? conquest ? 'Country conquered' : 'After the attack' : draft.mode === 'transfer' ? 'Transfer soldiers' : 'Plan your move'}>
+    content = <><CommandHeader title={post ? conquest ? 'Territory captured' : 'After the attack' : draft.mode === 'transfer' ? 'Transfer forces' : 'Issue your orders'}>
       <p>{post ? 'You may transfer soldiers, then end your turn. A new attack starts on your next turn.' : 'One attack per turn, with as many dice exchanges as the battle permits. You may also transfer soldiers or skip.'}</p></CommandHeader>
       {conquest && <p>{game.countries.find(c => c.id === conquest.target_id)?.name ?? conquest.target_id} was conquered.
         {conquest.amount != null && ` Conquest reward: ${conquest.amount} soldiers added.`} This automatic reward is separate from any optional transfer.</p>}
@@ -108,7 +109,7 @@ export function HumanControlsView({ game, disabled, act, disabledReason, latest,
               disabled={disabled} onChange={amount => update({ amount })} />}
           </fieldset>
           <p>Leave at least one soldier in the source country.</p>
-          <Button type="submit" disabled={disabled || !transferValid} disabledReason={disabled ? reason : 'Choose two different owned countries and a valid positive amount.'}>Transfer soldiers</Button>
+          <Button type="submit" disabled={disabled || !transferValid} disabledReason={disabled ? reason : 'Choose two different owned countries and a valid positive amount.'}>Transfer forces</Button>
         </form>
         <Button variant="quiet" disabled={disabled} onClick={() => update({ mode: 'attack' })}>{post ? 'Back to end turn' : 'Back to attack'}</Button>
       </> : <>
@@ -121,11 +122,11 @@ export function HumanControlsView({ game, disabled, act, disabledReason, latest,
           </fieldset>
           {(source || target) && <div key={`${source?.id ?? ''}:${target?.id ?? ''}`} className="geo-command__comparison" data-ready={!!source && !!target}>
             {source && <CountrySummary country={source} label="FROM" />}{source && target && <span className="geo-command__direction" aria-label="Attacking">↓</span>}{target && <CountrySummary country={target} label="TARGET" />}</div>}
-          <p className="geo-help">Any rival country can be attacked, regardless of distance. Selecting countries submits nothing.</p>
-          <Button type="submit" className={attackValid ? 'geo-command__ready' : ''} disabled={disabled || !attackValid} disabledReason={disabled ? reason : attackReason}>Start attack</Button>
+          <p className="geo-help">Choosing countries submits nothing.</p>
+          <Button type="submit" className={attackValid ? 'geo-command__ready' : ''} disabled={disabled || !attackValid} disabledReason={disabled ? reason : attackReason}>Launch attack</Button>
         </form>}
         <div className="geo-command__actions"><Button variant="secondary" disabled={disabled || owned.length < 2 || !sources.length}
-          disabledReason={disabled ? reason : owned.length < 2 ? 'Hold at least two countries to transfer between them.' : 'An owned source needs at least two soldiers so one can stay behind.'} onClick={() => update({ mode: 'transfer' })}>Transfer soldiers</Button></div>
+          disabledReason={disabled ? reason : owned.length < 2 ? 'Hold at least two countries to transfer between them.' : 'An owned source needs at least two soldiers so one can stay behind.'} onClick={() => update({ mode: 'transfer' })}>Transfer forces</Button></div>
       </>}
       <div className="geo-command__footer">{post ? <Button variant={draft.mode === 'transfer' ? 'quiet' : 'primary'} disabled={disabled} disabledReason={reason}
         onClick={() => submit({ type: 'end_turn' })}>End turn</Button>
@@ -144,7 +145,7 @@ export function GameplayControls({ game, owner, disabled, fastForward, act, step
   busy = false, pending = false, disabledReason, latest, npcLimitReached = false }: GameplayControlsProps) {
   const active = activeParticipant(game);
   if (!owner) return <section className="geo-command"><h2>Watching this game</h2>
-    <p>Spectator view. Only this game's logged-in owner can play.</p><p>Follow the board, NPC explanations and saved commentary in the Chronicle.</p></section>;
+    <p>Spectator view · Read only.</p><a href="#live-action">Follow confirmed actions and saved decisions</a></section>;
   if (game.status === 'completed') return <section className="geo-command"><h2>Game complete</h2><p>This game is complete.</p>
     {game.winner && <p>Winner: {participantName(game, game.winner)}</p>}</section>;
   const complete = game.countries?.length === 10 && game.players?.length === 10 && game.turn_order?.length === 10
@@ -160,24 +161,28 @@ export function GameplayControls({ game, owner, disabled, fastForward, act, step
   const eliminated = human && !game.countries!.some(c => c.owner_id === human.id);
   return <div className="geo-command-context">
     {pending && <p className="geo-command__recovery" role="status">{fastForward
-      ? 'Confirming the submitted NPC move before continuing. Pause remains available.'
+      ? 'Confirming the submitted rival move before continuing. Pause remains available.'
       : 'A submitted request remains saved. New moves are locked. Use the recovery controls above; do not submit a replacement move.'}</p>}
     {busy && <p role="status">An action is in progress. Keep this page open while its outcome is confirmed.</p>}
-    {eliminated && <p>The human participant has been eliminated. The game is still active; you may continue the remaining NPC turns.</p>}
+    {eliminated && <p>The human participant has been eliminated. The game is still active; you may continue the remaining rival turns.</p>}
     {active.kind === 'human' ? <HumanControls game={game} disabled={locked} disabledReason={reason} latest={latest} act={act} />
       : <section className="geo-command geo-playback" aria-labelledby="npc-title"><header className="geo-command__header"><span className="geo-label">While rivals play</span>
         <h2 id="npc-title">{participantName(game, active.id)}</h2></header>
-        <div className="geo-playback__state" role="status"><StatusIndicator>{pending && !busy ? 'Awaiting confirmation' : busy ? 'Advancing an NPC action' : fastForward ? 'Fast-forward is on' : 'Awaiting an NPC action · fast-forward is off'}</StatusIndicator>
-          <p>{pending ? 'The submitted action must settle before another can begin.' : `Current phase: ${game.phase?.replaceAll('_', ' ') ?? 'not recorded'}.`}</p></div>
-        <div className="geo-command__actions"><Button variant={fastForward ? 'secondary' : 'primary'} disabled={locked || fastForward || npcLimitReached} disabledReason={npcLimitReached ? 'The configured NPC limit is reached.' : reason}
-          onClick={() => { if (!locked && !fastForward && !npcLimitReached) step(); }}>Advance one NPC action</Button>
-          <Button variant="secondary" disabled={locked || fastForward || npcLimitReached} disabledReason={npcLimitReached ? 'The configured NPC limit is reached.' : reason}
-            onClick={() => { if (!locked && !fastForward && !npcLimitReached) fast(); }}>Fast-forward NPCs</Button>
-          {fastForward && <Button variant="primary" onClick={pause}>Pause NPC fast-forward</Button>}</div>
-        {npcLimitReached && <p>The configured NPC limit is reached. Playback cannot start; saved outcomes can still be checked.</p>}
-        <p>NPC actions and explanations remain visible. Fast-forward pauses at the human turn or game completion.</p>
-        <p className="geo-help">Pause prevents another action from starting; an already submitted action may still finish.</p>
-        <a href="#history-title">Follow committed moves in the Chronicle</a>
+        <div className="geo-playback__state" role="status"><StatusIndicator>{pending && !busy ? 'Awaiting confirmation' : busy ? 'Advancing a rival move' : fastForward ? 'Rival turns advancing' : 'Rival turns ready'}</StatusIndicator>
+          <p>{pending ? 'The submitted move must settle before another can begin.' : busy || fastForward ? npcActivity(game, active.id) : 'Step advances one move. Fast-forward continues through rival turns.'}</p></div>
+        <div className="geo-command__actions"><Button variant={fastForward ? 'secondary' : 'primary'} disabled={locked || fastForward || npcLimitReached} disabledReason={npcLimitReached ? 'The configured rival-move limit is reached.' : reason}
+          onClick={() => { if (!locked && !fastForward && !npcLimitReached) step(); }}>Step · Advance one rival move</Button>
+          <Button variant="secondary" disabled={locked || fastForward || npcLimitReached} disabledReason={npcLimitReached ? 'The configured rival-move limit is reached.' : reason}
+            onClick={() => { if (!locked && !fastForward && !npcLimitReached) fast(); }}>Fast-forward rivals</Button>
+          {fastForward && <Button variant="primary" onClick={pause}>Pause rival turns</Button>}</div>
+        {npcLimitReached && <p>The configured rival-move limit is reached. Playback cannot start; saved outcomes can still be checked.</p>}
+        <p className="geo-help">Fast-forward stops at your turn or campaign completion.</p>
+        {(busy || fastForward || pending) && <p className="geo-help">Pause stops new moves; an already submitted action may still finish.</p>}
+        <details className="geo-playback__help"><summary>Rival-turn guidance</summary>
+          <p>Pause prevents another move from starting; an already submitted move may still finish.</p>
+          <p>Saved strategic reasoning remains below and in the Chronicle. An interrupted or unresolved move also stops Fast-forward.</p>
+        </details>
+        <a href="#history-title">Review committed moves in the Chronicle</a>
       </section>}
   </div>;
 }

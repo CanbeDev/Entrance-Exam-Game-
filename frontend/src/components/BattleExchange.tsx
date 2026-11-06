@@ -14,16 +14,16 @@ export function Die({ value, side }: { value: number | null; side: 'Attacker' | 
   </span>;
 }
 function Side({ name, side, before, after, loss, current, reward }: { name: string; side: 'Attacker' | 'Defender'; before: number | null; after: number | null; loss?: number; current?: number | null; reward?: number | null }) {
-  return <aside className={`geo-battle__side geo-battle__side--${side.toLowerCase()}`}><span className="geo-label">{side}</span><h4>{name}</h4>
+  return <aside className={`geo-battle__side geo-battle__side--${side.toLowerCase()}`}><span className="geo-label">{side === 'Attacker' ? 'Attacking forces' : 'Defending forces'}</span><h4>{name}</h4>
     {after !== null ? <><strong className="geo-battle__soldiers">{number(after)}</strong><p>soldiers after this exchange</p></> : <p>Soldier count not recorded for this exchange.</p>}
-    {before !== null && <p>Was {number(before)}</p>}
-    {loss != null && <p className="geo-battle__loss">Lost {number(loss)} this exchange</p>}
+    {loss != null && <p className="geo-battle__loss">{number(loss)} {loss === 1 ? 'soldier' : 'soldiers'} lost</p>}
+    {before !== null && <details className="geo-battle__before"><summary>Before exchange</summary><p>{number(before)} soldiers</p></details>}
     {reward != null && <p>Conquest reward: {number(reward)} soldiers added separately.</p>}
     {current != null && <p>After conquest reward: {number(current)} soldiers stationed here.</p>}
   </aside>;
 }
 export function BattleExchangeView({ game, entry, index, counts, rolling, skip, settled }: {
-  game: PublicGame; entry: PublicCommittedAction; index: number; counts: BattleCounts; rolling: boolean; skip: () => void; settled: () => void;
+  game: PublicGame; entry: Pick<PublicCommittedAction, 'revision' | 'events'>; index: number; counts: BattleCounts; rolling: boolean; skip: () => void; settled: () => void;
 }) {
   const event = entry.events[index]!;
   const pairs = dicePairs(event);
@@ -32,8 +32,14 @@ export function BattleExchangeView({ game, entry, index, counts, rolling, skip, 
   const country = (id: string | null | undefined) => game.countries?.find(c => c.id === id)?.name ?? id ?? 'Country not recorded';
   const conquest = entry.events.find(e => e.type === 'conquered' && e.target_id === event.target_id);
   return <section className="geo-battle" aria-label={`Committed dice exchange, move ${entry.revision}`}>
+    <header className="geo-battle__heading"><h4>{country(event.source_id)} → {country(event.target_id)}</h4>
+      <p>Confirmed exchange · Move {entry.revision}</p></header>
+    <div className="geo-battle__summary" role="status"><span>Attacker losses: {event.attacker_losses ?? 'not recorded'}.</span>{' '}
+      <span>Defender losses: {event.defender_losses ?? 'not recorded'}.</span>{' '}
+      <span>{ties === null ? 'Ties not fully recorded.' : `${ties} ${ties === 1 ? 'tie' : 'ties'} — no loss.`}</span></div>
     <div className="geo-battle__layout"><Side name={country(event.source_id)} side="Attacker" before={counts.attackerBefore} after={counts.attackerAfter} loss={event.attacker_losses} />
-      <div className="geo-battle__centre"><h4>Exchange result · Move {entry.revision}</h4><p>{complete ? `${pairs.length} dice each side, paired in saved order.` : 'Some dice data is not recorded.'}</p>
+      <Side name={country(event.target_id)} side="Defender" before={counts.defenderBefore} after={counts.defenderAfter} loss={event.defender_losses} current={counts.defenderCurrent} reward={conquest?.amount} />
+      <div className="geo-battle__centre"><h4>Recorded dice · Move {entry.revision}</h4><p>{complete ? `${pairs.length} dice each side, paired in saved order.` : 'Some dice data is not recorded.'}</p>
         {rolling && <button type="button" onClick={skip}>Skip dice animation</button>}
         <div className="geo-battle__scroll" role="region" aria-label={`Dice pairs for move ${entry.revision}`} tabIndex={0}>
           <ol className="geo-battle__pairs" data-rolling={rolling} onAnimationEnd={e => { if (e.animationName === 'geo-die-roll') settled(); }}>
@@ -43,12 +49,8 @@ export function BattleExchangeView({ game, entry, index, counts, rolling, skip, 
           </ol>
         </div>
         {!pairs.length && <p>Dice values are unavailable for this exchange.</p>}
-        <div className="geo-battle__summary" role="status"><span>Attacker losses: {event.attacker_losses ?? 'not recorded'}.</span>{' '}
-          <span>Defender losses: {event.defender_losses ?? 'not recorded'}.</span>{' '}
-          <span>{ties === null ? 'Ties not fully recorded.' : `${ties} ${ties === 1 ? 'tie' : 'ties'} — no loss.`}</span></div>
         <details><summary>Saved dice values</summary><p>Attacker dice: {event.attacker_dice?.join(', ') || 'not recorded'}. Defender dice: {event.defender_dice?.join(', ') || 'not recorded'}.</p></details>
       </div>
-      <Side name={country(event.target_id)} side="Defender" before={counts.defenderBefore} after={counts.defenderAfter} loss={event.defender_losses} current={counts.defenderCurrent} reward={conquest?.amount} />
     </div>
   </section>;
 }
@@ -73,8 +75,8 @@ export function BattleExchange({ game, entry, index, gameId, ledger, previous }:
 export function ActiveBattle({ game, pending = false }: { game: PublicGame; pending?: boolean }) {
   if (game.status !== 'active' || game.phase !== 'attacking' || !game.battle) return null;
   const a = game.countries?.find(c => c.id === game.battle!.source_id), d = game.countries?.find(c => c.id === game.battle!.target_id);
-  return <section className="geo-battle geo-battle--active" aria-label="Current battle"><h3>{a?.name ?? game.battle.source_id} → {d?.name ?? game.battle.target_id}</h3>
-    <p>{activeParticipant(game)?.kind === 'npc' ? 'NPC attack in progress.' : 'Attack in progress.'} {pending ? 'A battle action is awaiting confirmation. No new dice result is shown until it is committed.' : 'Use the existing battle actions to roll or stop.'}</p>
+  return <section className="geo-battle geo-battle--active" aria-label="Current battle"><span className="geo-label">Battle underway</span><h3>{a?.name ?? game.battle.source_id} → {d?.name ?? game.battle.target_id}</h3>
+    <p>{activeParticipant(game)?.kind === 'npc' ? 'Rival attack underway.' : 'Attack underway.'} {pending ? 'A battle action is awaiting confirmation. No new dice result is shown until it is committed.' : 'Use the existing battle actions to roll or stop.'}</p>
     <p>{a ? `${a.name}: ${number(a.soldiers)} soldiers. ` : ''}{d ? `${d.name}: ${number(d.soldiers)} soldiers.` : ''}</p>
     <a href="#history-title">View committed dice and commentary</a>
   </section>;

@@ -58,9 +58,9 @@ test('latest returned move is not duplicated once its committed receipt is prese
 test('saved reasoning stays distinct and escaped, while missing historical facts are not fabricated', () => {
   const state = fixtures.boardFixture(); state.events[0].npc_decision.explanation = '<script>unsafe</script>';
   const result = renderHistory(state);
-  assert.match(result, /Recorded NPC reasoning/); assert.match(result, /&lt;script&gt;unsafe/); assert.doesNotMatch(result, /<script>/);
+  assert.match(result, /Recorded strategic reasoning/); assert.match(result, /&lt;script&gt;unsafe/); assert.doesNotMatch(result, /<script>/);
   const partial = renderHistory(chronicle.chronicleFixture('chronicle-missing'));
-  assert.doesNotMatch(partial, /<time|Recorded NPC reasoning/); assert.match(partial, /not recorded/);
+  assert.doesNotMatch(partial, /<time|Recorded strategic reasoning/); assert.match(partial, /not recorded/);
   assert.equal(receiptTime(''), null); assert.equal(receiptTime('unknown'), null);
   assert.equal(receiptTime('2026-11-02T00:00:00Z'), '2026-11-02 00:00:00 UTC');
   assert.equal(receiptRound({ events: [] }), null);
@@ -91,7 +91,7 @@ test('automatic NPC confirmation shows progress and Pause without manual recover
   state.notice = 'Confirming the submitted NPC move. You can pause fast-forward.';
   const controller = { api: {}, getSnapshot: () => state };
   const running = html(app.AppView({ state, controller, now: 0, origin: 'https://example.invalid' }));
-  assert.match(running, /Pause NPC fast-forward/);
+  assert.match(running, /Pause rival turns/);
   assert.match(running, /Confirming the submitted NPC move/);
   assert.doesNotMatch(running, /Retry saved request|Check committed outcome|expected revision|Original account:/);
   state.fastForward = false; state.confirmingPending = false;

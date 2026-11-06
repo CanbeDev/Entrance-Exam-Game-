@@ -13,7 +13,7 @@ export function dicePairs(event: PublicGameEvent) {
   });
 }
 export interface BattleCounts { attackerBefore: number | null; attackerAfter: number | null; defenderBefore: number | null; defenderAfter: number | null; defenderCurrent: number | null }
-export function exchangeCounts(entry: PublicCommittedAction, event: PublicGameEvent, game: PublicGame, previous?: PublicGame | null): BattleCounts {
+export function exchangeCounts(entry: Pick<PublicCommittedAction, 'revision' | 'events'>, event: PublicGameEvent, game: PublicGame, previous?: PublicGame | null): BattleCounts {
   const single = entry.events.filter(e => e.type === 'dice_exchange').length === 1;
   const clean = single && !entry.events.some(e => e.type === 'allocated' || e.type === 'transferred');
   const prior = clean && previous?.revision === entry.revision - 1 ? previous : null;

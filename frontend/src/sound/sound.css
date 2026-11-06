@@ -5,3 +5,28 @@
 .geo-sound input[type="checkbox"] { inline-size: 20px; block-size: 20px; }
 .geo-sound input[type="range"] { min-inline-size: 0; max-inline-size: 100%; flex: 1; accent-color: var(--geo-forest); }
 .geo-sound button { min-block-size: 44px; }
+.geo-sound-utility { display: flex; align-items: center; position: relative; }
+.geo-ui .geo-sound-toggle { inline-size: 44px; block-size: 44px; padding: 10px; margin: 0; display: grid; place-items: center; border-radius: 14px; color: var(--geo-forest); }
+.geo-sound-utility .geo-sound { margin: 0; }
+.geo-sound-utility .geo-sound > summary { inline-size: 44px; block-size: 44px; display: grid; place-items: center; text-decoration: none; border-radius: 14px; color: var(--geo-forest); }
+.geo-sound-utility .geo-sound > summary:hover { background: var(--geo-sand); }
+.geo-sound-utility .geo-sound fieldset { position: absolute; z-index: 15; inset-block-start: 48px; inset-inline-start: auto; inset-inline-end: 0; min-inline-size: 0; inline-size: min(290px, calc(100vw - 56px)); padding: 16px; border: 1px solid var(--geo-line); border-radius: 20px; box-shadow: 0 12px 32px #1a312714, 0 2px 8px #1a31270a; }
+.geo-sound-utility .geo-sound label { margin: 0; }
+.geo-sound-utility .geo-sound input[type="checkbox"] { appearance: none; display: grid; place-items: center; flex: none; min-block-size: 20px; padding: 0; margin: 0; border: 1px solid var(--geo-outline); border-radius: 5px; background: var(--geo-paper); }
+.geo-sound-utility .geo-sound input[type="checkbox"]::before { content: ''; inline-size: 6px; block-size: 10px; border: solid var(--geo-paper); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); opacity: 0; }
+.geo-sound-utility .geo-sound input[type="checkbox"]:checked { background: var(--geo-forest); border-color: var(--geo-forest); }
+.geo-sound-utility .geo-sound input[type="checkbox"]:checked::before { opacity: 1; }
+.geo-sound-utility .geo-sound input[type="range"] { margin: 0; padding: 0; border: 0; background: transparent; }
+.geo-sound-utility .geo-sound input[type="range"]::-webkit-slider-thumb { border-radius: 50%; }
+.geo-sound-utility .geo-sound input[type="range"]::-moz-range-thumb { border-radius: 50%; }
+.geo-sound-utility .geo-sound fieldset button { border-radius: 14px; }
+.geo-sound-utility .geo-sound .geo-help { margin: 8px 0 0; }
+@media (forced-colors: active) {
+  .geo-sound-utility .geo-sound input[type="checkbox"] { appearance: auto; }
+  .geo-sound-utility .geo-sound input[type="checkbox"]::before { display: none; }
+}
+/* Below this header breakpoint, utilities wrap to the viewport's leading edge. */
+@media (max-width: 1179px) {
+  .geo-sound-utility .geo-sound fieldset { inset-inline-start: 0; inset-inline-end: auto; }
+}
+.geo-sound-utility :where(button,summary):focus-visible { outline: 3px solid var(--geo-ink); outline-offset: 2px; }

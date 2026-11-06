@@ -199,7 +199,7 @@ test('real commentary UI renders human/NPC narration, fallback/loading and spect
       { game, entry, display: { commentary: null, error: null, requested: false, loading: false, ...display }, canGenerate, generate() {}, check() {} }));
     for (const kind of ['human', 'npc']) {
       const ready = render({ commentary: value(2, 'ready', kind) });
-      assert.match(ready, /<h5>Commentary<\/h5>/); assert.doesNotMatch(ready, /AI Commentary|LLM-generated|Groq|Written by AI/i); assert.match(ready, /defenders held their ground/);
+      assert.match(ready, /<h4>Battle Commentary<\/h4>/); assert.doesNotMatch(ready, /AI Commentary|LLM-generated|Groq|Written by AI/i); assert.match(ready, /defenders held their ground/);
       assert.doesNotMatch(ready, /Generate commentary/);
     }
     assert.match(render({ loading: true }), /Loading commentary.*Gameplay remains available/);
@@ -213,7 +213,7 @@ test('real commentary UI renders human/NPC narration, fallback/loading and spect
     assert.doesNotMatch(escaped, /<script>/);
     const chronicle = "South Africa's assault met France's stubborn resistance. The contest remained balanced, leaving both sides searching for an advantage in a tense, unresolved exchange.";
     const narration = render({ commentary: { ...value(), text: chronicle } });
-    assert.match(narration, /<h5>Commentary<\/h5>/);
+    assert.match(narration, /<h4>Battle Commentary<\/h4>/);
     assert.match(narration, /stubborn resistance/);
     assert.match(narration, /tense, unresolved exchange/);
     const failed = render({ error: 'Saved commentary is unavailable.' });

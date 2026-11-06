@@ -15,8 +15,9 @@ NPCs to control ten countries.
 - Interactive world atlas, animated battle dice and Flag Poster results.
 - Optional sound effects, volume preferences and country information cards.
 
-The current UI redesign and audio patch await final connected-game acceptance.
-Earlier live commentary evidence does not certify this working-tree release.
+The cumulative UI refresh is locally verified. Release-specific connected-game
+smoke testing remains separate from the owner's earlier Stage 9 acceptance.
+See the [frontend release record](docs/FRONTEND_UI_RELEASE.md).
 
 ## Technology Stack
 
@@ -74,9 +75,11 @@ npm.cmd run check:contracts
 npm.cmd run build
 ```
 
-Stage 9 offline checks pass 358 public frontend tests, 929 backend tests and 43 contract
-components. TypeScript, build and data-drift checks pass. All 44 real-database
-tests remain skipped. Mocks do not prove live persistence or provider delivery.
+The frontend freeze passes 411 public frontend tests and 43 contract components,
+with TypeScript, build and map/country/audio integrity checks. The earlier Stage 9
+report recorded 358 frontend tests, 929 backend tests and 44 skipped real-database
+tests; those backend results are historical and were not rerun for this UI release.
+Mocks do not prove live persistence or provider delivery.
 
 See [backend testing](backend/docs/TESTING.md), the
 [manual gameplay checklist](docs/STAGE9_HUMAN_GAMEPLAY_ACCEPTANCE.md) and

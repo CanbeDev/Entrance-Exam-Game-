@@ -1,0 +1,159 @@
+/* Public landing only; shared header, sound, forms and gameplay retain their behavior. */
+.geo-screen-page .geo-landing.geo-landing--public { display: block; padding-block: 20px 0; }
+.geo-landing--public :where(section, figure, header, ol) { margin: 0; }
+.geo-landing--public :where(section, div, figure) { min-inline-size: 0; }
+.geo-landing--public .geo-landing__hero { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 40px; align-items: center; padding-block: 20px 48px; }
+.geo-landing--public .geo-landing__story { position: relative; isolation: isolate; }
+.geo-landing--public .geo-landing__brief { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.geo-screen-page .geo-global-header .geo-header-login { display: inline-flex; align-items: center; justify-content: center; flex: none; gap: 8px; min-block-size: 44px; padding: 8px 12px; border: 1px solid var(--geo-forest); border-radius: 10px; background: var(--geo-paper); color: var(--geo-forest); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color 150ms ease; }
+.geo-screen-page .geo-global-header .geo-header-login:hover { background: var(--geo-sand); }
+.geo-screen-page .geo-global-header .geo-header-login:focus-visible { outline: 3px solid var(--geo-ink); outline-offset: 2px; }
+.geo-header-login__icon { inline-size: 20px; block-size: 20px; pointer-events: none; }
+.geo-global-header:has(.geo-header-login) .geo-brand { flex-basis: 160px; }
+.geo-landing__eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #8A5B1F; font: 600 13px/20px var(--geo-font-body); letter-spacing: .08em; text-transform: uppercase; }
+.geo-landing-symbol { inline-size: 30px; block-size: 30px; flex: none; pointer-events: none; }
+.geo-landing__eyebrow .geo-landing-symbol { inline-size: 22px; block-size: 22px; }
+.geo-screen-page .geo-landing--public h2#landing-title { font: 500 clamp(44px, 5vw, 74px)/1.04 var(--geo-font-heading); letter-spacing: -.035em; margin: 16px 0 20px; }
+.geo-landing--public #landing-title > span, .geo-landing--public #landing-title > em { display: block; }
+.geo-screen-page .geo-landing--public #landing-title em { font-style: italic; color: var(--geo-forest); }
+.geo-landing--public .geo-landing__tagline { border-inline-start: 2px solid #B49A64; padding-inline-start: 14px; margin-block: 0 20px; color: var(--geo-forest); font: 500 20px/26px var(--geo-font-heading); }
+.geo-landing--public .geo-landing__lead { max-inline-size: 45ch; font-size: 17px; line-height: 27px; color: var(--geo-body-muted); margin-block-end: 24px; }
+.geo-landing--public .geo-landing__cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.geo-landing--public :where(.geo-landing__primary,.geo-landing__secondary) { display: inline-flex; align-items: center; justify-content: center; gap: 20px; min-block-size: 48px; padding: 12px 20px; border: 1px solid var(--geo-forest); border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600; transition: transform 150ms ease, background-color 150ms ease; }
+.geo-screen-page .geo-landing--public .geo-landing__primary { background: var(--geo-forest); color: var(--geo-paper); box-shadow: 0 3px 0 var(--geo-deep-forest); }
+.geo-screen-page .geo-landing--public .geo-landing__primary:hover { background: var(--geo-forest-hover); transform: translateY(-1px); }
+.geo-landing--public .geo-landing__secondary { background: transparent; color: var(--geo-forest); border-color: var(--geo-outline); }
+.geo-landing--public .geo-landing__secondary:hover { background: var(--geo-sand); }
+.geo-landing--public :where(.geo-landing__primary,.geo-landing__secondary):active { transform: translateY(1px); }
+.geo-landing--public .geo-landing__campaign-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-block-start: 20px; }
+.geo-landing--public .geo-landing__metadata { margin: 0; font-size: 13px; letter-spacing: .035em; color: var(--geo-body-muted); }
+.geo-landing--public .geo-landing__watermark { display: flex; align-items: center; gap: 2px; pointer-events: none; color: var(--geo-forest); opacity: .3; }
+.geo-landing__watermark .geo-landing-symbol { inline-size: 52px; block-size: 52px; stroke-width: .9; transform: rotate(-12deg); }
+.geo-landing__watermark .geo-landing-symbol + .geo-landing-symbol { inline-size: 38px; block-size: 38px; transform: rotate(12deg); }
+.geo-landing--public .geo-landing__map { margin: 0; transform: rotate(1deg); }
+.geo-landing__atlas-frame { padding: 16px; border: 1px solid var(--geo-border); border-radius: 14px; background: var(--geo-parchment); box-shadow: 8px 8px 0 var(--geo-sand), 0 16px 32px #1a31270c; }
+.geo-landing__atlas-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-block-end: 12px; color: var(--geo-forest); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.geo-landing--public .geo-landing__map .geo-landing__geography { inline-size: 100%; display: block; border: 1px solid var(--geo-border); border-radius: 4px; background: var(--geo-ocean); }
+.geo-landing--public .geo-landing__map .geo-landing-symbol { display: block; inline-size: 30px; block-size: 30px; border: 0; border-radius: 0; background: none; }
+.geo-landing--public .geo-landing-symbol path { fill: none; stroke: currentColor; }
+.geo-landing--public .geo-landing__countries path { fill: var(--geo-land); stroke: var(--geo-border); stroke-width: 1; }
+.geo-landing--public .geo-landing__countries path:nth-child(7n) { fill: #D2D8C3; }
+.geo-landing--public .geo-landing__countries path:nth-child(13n) { fill: #D3DDE0; }
+.geo-landing--public .geo-landing__grid path { fill: none; stroke: var(--geo-border); stroke-width: 1; opacity: .45; }
+.geo-landing__atlas-key { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block-start: 10px; color: var(--geo-body-muted); font-size: 13px; }
+.geo-landing__atlas-seal { display: inline-flex; flex: none; align-items: center; gap: 10px; pointer-events: none; }
+.geo-landing__atlas-seal > :first-child { opacity: .4; transform: rotate(-12deg); }
+.geo-landing--public .geo-landing__map figcaption { padding-block-start: 12px; font-size: 13px; line-height: 20px; color: var(--geo-muted); }
+.geo-landing--public .geo-landing__access, .geo-landing--public .geo-landing__observation { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 460px); gap: 64px; align-items: center; padding-block: 40px; border-block-start: 1px solid var(--geo-line); scroll-margin-block-start: 16px; }
+.geo-landing--public .geo-landing__introduction { max-inline-size: 48ch; }
+.geo-landing--public .geo-landing__introduction h2, .geo-landing--public .geo-landing__section-heading h2 { font: 500 clamp(32px, 3.7vw, 50px)/1.08 var(--geo-font-heading); letter-spacing: -.02em; margin: 12px 0 20px; }
+.geo-landing--public :where(.geo-landing__introduction,.geo-landing__section-heading) h2 em { color: var(--geo-forest); font-style: italic; }
+.geo-landing--public .geo-landing__introduction p { font-size: 16px; line-height: 25px; }
+.geo-landing--public .geo-landing__introduction .geo-landing__note { font-size: 13px; line-height: 21px; color: var(--geo-body-muted); }
+.geo-landing--public .geo-landing__text-link { display: inline-flex; align-items: center; gap: 16px; min-block-size: 44px; font-size: 14px; font-weight: 600; }
+.geo-landing--public .geo-landing__account { padding: 28px; border: 1px solid var(--geo-line); border-radius: 4px; background: var(--geo-paper); box-shadow: 8px 8px 0 var(--geo-sand); }
+.geo-landing--public .geo-landing__account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-block-end: 16px; color: #8A5B1F; }
+.geo-landing--public .geo-auth { margin: 0; border: 0; border-radius: 0; padding: 0; background: transparent; box-shadow: none; }
+.geo-landing--public .geo-auth :where(input,button) { border-radius: 4px; }
+.geo-landing--public .geo-auth h2 { margin-block: 8px 20px; }
+.geo-landing--public .geo-auth label { display: block; }
+.geo-landing--public .geo-auth__invitation { display: inline-block; margin: 12px 0 0; color: var(--geo-body-muted); font-size: 13px; line-height: 22px; vertical-align: baseline; }
+.geo-landing--public .geo-auth:has(.geo-auth__invitation) .geo-screen-link { display: inline-flex; align-items: center; inline-size: auto; min-block-size: 44px; padding-inline: 8px; font-size: 13px; vertical-align: baseline; }
+.geo-landing--public .geo-landing__observation { grid-template-columns: minmax(0,1fr) minmax(300px,1fr); gap: 32px; padding: 32px; border: 1px solid var(--geo-forest); border-radius: 4px; background: var(--geo-deep-forest); color: var(--geo-paper); }
+.geo-landing--public .geo-landing__observation h2 { font-size: 32px; }
+.geo-landing--public .geo-landing__observation h2 em { font-style: normal; }
+.geo-landing--public .geo-landing__observation :where(h2,h2 em,.geo-landing__eyebrow) { color: var(--geo-paper); }
+.geo-landing--public .geo-landing__observation .geo-landing__eyebrow { color: #DED1A3; }
+.geo-landing--public .geo-landing__observation .geo-landing__note { color: #E2DAC8; }
+.geo-landing--public .geo-landing__watch { border-inline-start: 1px solid #6E8073; padding-inline-start: 32px; }
+.geo-landing--public .geo-watch { margin: 0; }
+.geo-landing--public .geo-watch > :where(.geo-label,h2,p:not([role])) { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.geo-landing--public .geo-watch h2 { color: var(--geo-paper); font: 500 26px/32px var(--geo-font-heading); margin-block: 8px 12px; }
+.geo-landing--public .geo-watch :where(p,.geo-label) { color: #E2DAC8; }
+.geo-landing--public .geo-watch fieldset { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; }
+.geo-landing--public .geo-watch label { grid-column: 1; grid-row: 1; margin: 0; }
+.geo-landing--public .geo-watch input { background: transparent; color: var(--geo-paper); border-color: #829990; border-radius: 8px 0 0 8px; }
+.geo-landing--public .geo-watch input::placeholder { color: #CAD2C9; }
+.geo-landing--public .geo-watch .geo-help { grid-column: 1 / -1; grid-row: 2; margin: 8px 0 0; }
+.geo-landing--public .geo-watch .geo-screen-primary { grid-column: 2; grid-row: 1; background: #D3B775; color: var(--geo-deep-forest); border-color: #D3B775; border-radius: 0 8px 8px 0; }
+.geo-landing--public .geo-watch .geo-screen-primary:hover { background: #DED1A3; }
+.geo-landing--public .geo-watch [role="alert"] { background: var(--geo-paper); color: var(--geo-alert); padding: 8px 12px; border-color: var(--geo-copper); }
+.geo-landing--public .geo-landing__observation:focus-visible, .geo-landing--public .geo-landing__observation :where(input,button):focus-visible { outline: 3px solid var(--geo-paper); outline-offset: 2px; }
+.geo-landing--public .geo-landing__orders { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0,1.2fr); gap: 48px; padding-block: 48px; }
+.geo-landing--public .geo-landing__epigraph { max-inline-size: 36ch; margin-block-start: 32px; border-block-start: 1px solid #B49A64; padding-block-start: 20px; }
+.geo-landing--public .geo-landing__epigraph blockquote { margin: 0; }
+.geo-landing--public .geo-landing__epigraph blockquote p { margin: 0 0 12px; color: var(--geo-forest); font: 500 25px/32px var(--geo-font-heading); }
+.geo-landing--public .geo-landing__epigraph figcaption { color: var(--geo-body-muted); font-size: 13px; line-height: 21px; }
+.geo-landing--public .geo-landing__epigraph figcaption span { display: block; }
+.geo-landing--public .geo-landing__orders ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; padding: 0; list-style: none; }
+.geo-landing--public .geo-landing__orders li { padding-block: 16px 0; border-block-start: 1px solid var(--geo-border); }
+.geo-landing--public .geo-landing__order-number { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--geo-forest); font-size: 13px; letter-spacing: .06em; }
+.geo-landing--public .geo-landing__orders h3 { font: 600 21px/26px var(--geo-font-heading); margin: 16px 0 8px; }
+.geo-landing--public .geo-landing__orders li p { font-size: 14px; line-height: 22px; color: var(--geo-body-muted); margin: 0; }
+.geo-landing--public .geo-landing__features { padding-block: 32px 44px; border-block-start: 1px solid var(--geo-line); }
+.geo-landing--public .geo-landing__features > header { text-align: center; margin-block-end: 28px; }
+.geo-landing--public .geo-landing__feature-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px; }
+.geo-landing--public .geo-landing__feature-grid article { border-block-start: 1px solid var(--geo-forest); padding-block-start: 12px; }
+.geo-landing--public .geo-landing__feature-art { display: grid; place-items: center; block-size: 100px; margin-block-end: 16px; background: var(--geo-sand); border: 1px solid var(--geo-line); color: var(--geo-forest); font: 500 34px var(--geo-font-heading); }
+.geo-landing--public .geo-landing__feature-grid article:nth-child(2) .geo-landing__feature-art { background: #DFE7DB; }
+.geo-landing--public .geo-landing__feature-grid article:nth-child(4) .geo-landing__feature-art { background: #DFE7E5; }
+.geo-landing--public .geo-landing__feature-grid h3 { font: 500 22px/27px var(--geo-font-heading); margin: 0 0 8px; }
+.geo-landing--public .geo-landing__feature-grid p { font-size: 14px; line-height: 22px; color: var(--geo-body-muted); margin: 0; }
+.geo-landing--public .geo-landing__preview { display: grid; grid-template-columns: minmax(0,.7fr) minmax(0,1.3fr); gap: 40px; align-items: center; padding-block: 40px 24px; border-block-start: 1px solid var(--geo-line); }
+.geo-landing--public .geo-landing__section-heading > p { max-inline-size: 70ch; color: var(--geo-body-muted); font-size: 16px; line-height: 25px; margin-block-end: 24px; }
+.geo-landing--public .geo-landing__preview figure { border: 1px solid var(--geo-border); border-radius: 4px; background: var(--geo-paper); box-shadow: 8px 8px 0 var(--geo-sand); }
+.geo-landing--public .geo-landing__preview-label { padding: 12px 16px; border-block-end: 1px solid var(--geo-line); border-radius: 4px 4px 0 0; background: var(--geo-sand); color: var(--geo-forest); font-size: 13px; font-weight: 600; }
+.geo-landing--public .geo-landing__preview img { display: block; inline-size: 100%; block-size: auto; }
+.geo-landing--public .geo-landing__preview figcaption { padding: 12px 16px; font-size: 13px; color: var(--geo-muted); }
+.geo-landing__preview-engraving { display: flex; align-items: center; gap: 16px; max-inline-size: 220px; margin-block-start: 24px; color: #8A5B1F; opacity: .6; pointer-events: none; }
+.geo-landing__preview-engraving > .geo-landing-symbol { inline-size: 42px; block-size: 42px; stroke-width: 1; }
+.geo-landing__preview-engraving > span { flex: 1; border-block-start: 1px solid currentColor; }
+.geo-screen-page:has(> .geo-landing--public) > .geo-site-footer { justify-content: space-between; }
+@keyframes geo-public-enter { from { opacity: .25; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .geo-landing--public .geo-landing__brief { animation: geo-public-enter 280ms ease-out both; }
+  .geo-landing--public #landing-title > span { animation: geo-public-enter 320ms 40ms ease-out both; }
+  .geo-landing--public #landing-title > em { animation: geo-public-enter 320ms 80ms ease-out both; }
+  .geo-landing--public :where(.geo-landing__lead,.geo-landing__cta,.geo-landing__metadata) { animation: geo-public-enter 320ms 120ms ease-out both; }
+  .geo-landing--public .geo-landing__map { animation: geo-public-enter 400ms 120ms ease-out both; }
+}
+@media (max-width: 1000px) {
+  .geo-landing--public .geo-landing__hero { gap: 24px; }
+  .geo-landing--public .geo-landing__access { gap: 32px; }
+  .geo-landing--public .geo-landing__observation { gap: 28px; }
+}
+@media (max-width: 850px) {
+  .geo-landing--public .geo-landing__hero, .geo-landing--public .geo-landing__access, .geo-landing--public .geo-landing__observation, .geo-landing--public .geo-landing__orders, .geo-landing--public .geo-landing__preview { grid-template-columns: minmax(0,1fr); gap: 24px; }
+  .geo-landing--public .geo-landing__map { max-inline-size: 700px; transform: none; }
+  .geo-landing--public .geo-landing__introduction { max-inline-size: 60ch; }
+  .geo-landing--public .geo-landing__introduction h2 br { display: none; }
+  .geo-landing--public .geo-landing__watch { padding: 24px 0 0; border-inline-start: 0; border-block-start: 1px solid #6E8073; }
+  .geo-landing--public .geo-landing__orders ol { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .geo-landing--public .geo-landing__feature-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 500px) {
+  .geo-screen-page .geo-landing.geo-landing--public { padding-block-start: 8px; }
+  .geo-landing--public .geo-landing__hero { padding-block: 4px 28px; }
+  .geo-screen-page .geo-landing--public h2#landing-title { font-size: clamp(36px, 10vw, 43px); margin-block: 12px 20px; }
+  .geo-landing--public .geo-landing__brief { align-items: flex-start; }
+  .geo-landing--public .geo-landing__brief > .geo-landing__eyebrow { flex: 1; font-size: 13px; letter-spacing: .02em; }
+  .geo-landing--public .geo-landing__lead { font-size: 16px; line-height: 25px; }
+  .geo-landing--public .geo-landing__cta { flex-direction: column; }
+  .geo-landing--public .geo-landing__campaign-note { gap: 4px 12px; }
+  .geo-landing--public .geo-landing__watermark .geo-landing-symbol { inline-size: 34px; block-size: 34px; }
+  .geo-landing--public .geo-landing__watermark .geo-landing-symbol + .geo-landing-symbol { inline-size: 28px; block-size: 28px; }
+  .geo-landing--public .geo-landing__atlas-frame { padding: 12px; box-shadow: 4px 4px 0 var(--geo-sand); }
+  .geo-landing--public .geo-landing__access { padding-block: 28px; }
+  .geo-landing--public .geo-landing__account { padding: 20px; }
+  .geo-landing--public .geo-landing__observation { padding: 24px 20px; }
+  .geo-landing--public .geo-landing__orders { padding-block: 32px; }
+  .geo-landing--public .geo-landing__orders ol { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .geo-landing--public .geo-landing__orders li { padding-block-start: 12px; }
+  .geo-landing--public .geo-landing__orders h3 { margin-block-start: 8px; }
+  .geo-landing--public .geo-landing__feature-grid { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .geo-landing--public .geo-landing__feature-grid article { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 4px 16px; }
+  .geo-landing--public .geo-landing__feature-art { grid-column: 1; grid-row: 1 / 3; block-size: 64px; margin: 0; }
+  .geo-landing--public .geo-landing__feature-grid :where(h3,p) { grid-column: 2; }
+  .geo-landing--public .geo-landing__preview { padding-block-start: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .geo-landing--public *, .geo-landing--public *::before, .geo-landing--public *::after { animation: none !important; transition: none !important; translate: none !important; } }

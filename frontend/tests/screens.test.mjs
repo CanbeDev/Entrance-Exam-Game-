@@ -40,8 +40,8 @@ test('watch input accepts canonical IDs and same-site URLs while rejecting cross
 });
 test('landing uses the real atlas geometry without fictional ownership, dice, soldiers or provider operations',()=>{
   const result=html(composition('landing'));
-  assert.match(result,/Pick a country/);assert.match(result,/Roll for the world/);assert.match(result,/World map illustration; no campaign ownership is shown/);
-  assert.equal((result.match(/<path /g)||[]).length,470);assert.doesNotMatch(result,/data-map-country|offline_fixture_owner|Generate commentary|Forgot Password/i);
+  assert.match(result,/Command a nation/);assert.match(result,/Conquer the world/);assert.match(result,/World map illustration; no campaign ownership is shown/);
+  assert.equal((result.match(/<g class="geo-landing__countries">([\s\S]*?)<\/g>/)?.[1].match(/<path /g)||[]).length,470);assert.doesNotMatch(result,/data-map-country|offline_fixture_owner|Generate commentary|Forgot Password/i);
   assert.match(result,/name="username"/);assert.match(result,/current-password/);assert.match(result,/Game link or ID/);
 });
 test('registration retains exact username/password constraints and the original recovery identity',()=>{
@@ -88,19 +88,19 @@ test('unknown catalog leaves creation disabled and country selection cannot muta
 });
 test('rules retain paired unsorted dice, ties, immutable rewards, optional transfers and real round boundaries',()=>{
   const result=html(createElement(rules.Rules));
-  for(const text of ['nine strategic NPC','without sorting','There is no three-dice cap','Ties cause no loss','original population-based soldier value','reward is placed in the captured country','optional positive transfer','Round one has no reinforcements','two soldiers for every country','entire pool','no fixed round limit','spectators cannot play or generate narration','atmospheric narration'])assert.ok(result.includes(text),text);
+  for(const text of ['nine strategic rival','without sorting','There is no three-dice cap','Ties cause no loss','original population-based soldier value','reward is placed in the captured country','optional positive transfer','Round one has no reinforcements','two soldiers for every country','entire pool','no fixed round limit','spectators cannot play or generate narration','atmospheric narration'])assert.ok(result.includes(text),text);
   assert.match(result,/shared strategy/);assert.match(result,/at least one soldier/);assert.doesNotMatch(result,/adjacent countries only|three dice maximum|Replay/);
 });
 test('result and elimination refine messaging without replacing the Flag Poster or locking owner NPC continuation',()=>{
   const victory=html(composition('victory')),defeat=html(composition('defeat')),eliminated=html(composition('eliminated'));
   assert.match(victory,/World Conqueror/);assert.match(victory,/Flag of Brazil/);assert.match(victory,/Review campaign/);
   assert.match(defeat,/Defeat/);assert.match(defeat,/Flag of Norway/);assert.doesNotMatch(defeat,/The world is yours/);
-  assert.match(eliminated,/Your participant has been eliminated/);assert.match(eliminated,/Advance one NPC action/);assert.doesNotMatch(eliminated,/geo-result__number/);
+  assert.match(eliminated,/Your participant has been eliminated/);assert.match(eliminated,/Step · Advance one rival move/);assert.doesNotMatch(eliminated,/geo-result__number/);
 });
 test('spectators retain saved history and public state without mutation or commentary generation controls',()=>{
   const result=html(composition('spectator'));
   assert.match(result,/Spectator view/);assert.match(result,/Committed history/);assert.match(result,/Commentary for move/);
-  assert.doesNotMatch(result,/Start attack|Advance one NPC action|Generate commentary|Commentary for new battles/);
+  assert.doesNotMatch(result,/Launch attack|Step · Advance one rival move|Generate commentary|Commentary for new battles/);
   assert.equal((result.match(/data-map-country=/g)||[]).length,10);
 });
 test('pending navigation, fixed-account recovery, read-only confirmation and retry locks remain available',()=>{

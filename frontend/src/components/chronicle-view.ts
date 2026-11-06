@@ -12,7 +12,7 @@ export function chronicleWindow(entries: readonly PublicCommittedAction[], page:
   const current = Math.max(0, Math.min(page, last));
   return { page: current, last, entries: entries.slice(current * CHRONICLE_PAGE_SIZE, (current + 1) * CHRONICLE_PAGE_SIZE) };
 }
-export function receiptRound(entry: PublicCommittedAction): number | null {
+export function receiptRound(entry: Pick<PublicCommittedAction, 'events'>): number | null {
   const round = entry.events[0]?.round;
   return typeof round === 'number' && Number.isSafeInteger(round) && round >= 1 ? round : null;
 }

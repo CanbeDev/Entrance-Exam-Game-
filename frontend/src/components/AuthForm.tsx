@@ -1,16 +1,24 @@
-import { useId, useState } from 'react';
-import type { SubmitEvent } from 'react';
+import { useId, useImperativeHandle, useState } from 'react';
+import type { Ref, SubmitEvent } from 'react';
 import type { Credentials } from '../api/index.ts';
 
-export function AuthForm({ disabled, onSubmit, recoveryUsername, initialRegister = false }: {
+export type AuthFormDisplay = { showLogin: () => void; showRegistration: () => void };
+
+export function AuthForm({ disabled, onSubmit, recoveryUsername, initialRegister = false, registrationInvitation = false, displayRef }: {
   disabled: boolean; onSubmit: (credentials: Credentials, register: boolean) => void;
   recoveryUsername?: string;
   initialRegister?: boolean;
+  registrationInvitation?: boolean;
+  displayRef?: Ref<AuthFormDisplay>;
 }) {
   const [registerMode, setRegister] = useState(initialRegister);
   const hint = useId();
   const [validation, setValidation] = useState('');
   const register = !recoveryUsername && registerMode;
+  useImperativeHandle(displayRef, () => ({
+    showLogin: () => { if (!disabled && !recoveryUsername) setRegister(false); },
+    showRegistration: () => { if (!disabled && !recoveryUsername) setRegister(true); },
+  }), [disabled, recoveryUsername]);
   function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (disabled) return;
@@ -32,6 +40,7 @@ export function AuthForm({ disabled, onSubmit, recoveryUsername, initialRegister
           aria-describedby={register ? hint : undefined} autoComplete={register ? 'new-password' : 'current-password'} /></label>
         {register && <p id={hint} className="geo-help">Use 3–32 letters, digits or underscores for your username and 15–128 characters for your password.</p>}
         <button className="geo-screen-primary" type="submit">{register ? 'Register and log in' : 'Log in'}</button>
+        {registrationInvitation && !register && !recoveryUsername && <p className="geo-auth__invitation">New to Geopolitics?</p>}
         {!recoveryUsername && <button className="geo-screen-link" type="button" onClick={() => { if (!disabled) setRegister(!register); }}>{register ? 'Use an existing account' : 'Create an account'}</button>}
       </fieldset>
       {validation && <p role="alert">{validation}</p>}

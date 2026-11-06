@@ -67,7 +67,7 @@ test('mock conquest updates map fragments and roster owner without changing coun
   assert.ok(paths.length > 1); assert.ok(paths.every(e => e.props.fill === 'var(--geo-forest)'));
   const html = boardRender(conquered);
   assert.match(html, /Australia, held by Brazil \(Human\), 999 soldiers/);
-  assert.match(html, /Home participant: Australia \(NPC\)/);
+  assert.match(html, /Home participant: Australia \(Rival\)/);
   assert.ok(html.includes('Australia')); assert.equal(board.boardPresentation(conquered, null, () => {}).humanHeld, 2);
   assert.equal(board.boardPresentation(original, null, () => {}).humanHeld, 1);
 });
@@ -85,8 +85,8 @@ test('turn strip uses saved randomized order and derives current, taken, upcomin
 
 test('human elimination keeps active match and owner NPC continuation controls', () => {
   const state = fixtures.boardFixture('eliminated'), html = render(state);
-  assert.equal(state.game.status, 'active'); assert.match(html, /remaining NPCs can finish/);
-  assert.match(html, /Advance one NPC action/); assert.doesNotMatch(html, /This game is complete/);
+  assert.equal(state.game.status, 'active'); assert.match(html, /remaining rivals can finish/);
+  assert.match(html, /Step · Advance one rival move/); assert.doesNotMatch(html, /This game is complete/);
   assert.equal(board.boardPresentation(state.game, null, () => {}).humanHeld, 0);
 });
 
@@ -94,7 +94,7 @@ test('spectators and other accounts see game/history without mutation or generat
   for (const state of [fixtures.boardFixture('spectator'), { ...fixtures.boardFixture(), owner: false }]) {
     const html = render(state);
     assert.match(html, /Spectator view/); assert.match(html, /data-map-country/); assert.match(html, /Committed history/);
-    assert.doesNotMatch(html, /Start attack|Skip turn|Advance one NPC action|Generate commentary|Optional NPC acceptance limit/);
+    assert.doesNotMatch(html, /Start attack|Skip turn|Step · Advance one rival move|Generate commentary|Optional NPC acceptance limit/);
     const props = gameNodes(state).find(e => e.type === controls.GameplayControls).props;
     assert.equal(props.owner, false);
     const h = gameNodes(state).find(e => e.type === history.History).props;
@@ -136,7 +136,7 @@ test('existing owner action callbacks, revision key and Pause semantics survive 
   assert.equal(node.key, `${state.gameId}:${state.game.revision}`); assert.equal(node.props.owner, true); assert.equal(node.props.disabled, true);
   const buttons = [...nodes(controls.GameplayControls(node.props))].filter(e => e.type === 'button' || e.type === ui.Button);
   assert.equal(buttons[0].props.disabled, true); assert.equal(buttons[1].props.disabled, true);
-  const pause = buttons.find(e => e.props.children === 'Pause NPC fast-forward');
+  const pause = buttons.find(e => e.props.children === 'Pause rival turns');
   assert.equal(pause.props.disabled, undefined); pause.props.onClick(); assert.deepEqual(calls, ['pause']);
   node.props.act({ type: 'roll' }); node.props.step(); node.props.fast();
   assert.deepEqual(calls, ['pause', { type: 'roll' }, 'step', 'fast']);
@@ -180,7 +180,7 @@ test('loading/error/background refresh preserve truthful last-known board withou
   assert.match(render(fixtures.boardFixture('loading')), /Restoring session/);
   const state = fixtures.boardFixture('refresh-error'); state.refreshing = true;
   const html = render(state);
-  assert.match(html, /Updating game/); assert.match(html, /Game update failed/);
+  assert.match(html, /data-state="problem"/); assert.match(html, /Game update failed/);
   assert.equal((html.match(/data-map-country=/g) ?? []).length, 10);
   assert.equal(gameNodes(state).find(e => e.type === controls.GameplayControls).props.disabled, false);
   assert.deepEqual(calls, []);
@@ -205,11 +205,11 @@ test('legacy/missing/unknown country identities fail gracefully and never fabric
 test('reinforcement, conquest and completed variants reuse the existing legal phase controls', () => {
   assert.match(render(fixtures.boardFixture('allocating')), /Allocate 4 reinforcements/);
   const conquest = render(fixtures.boardFixture('conquest'));
-  assert.match(conquest, /Transfer soldiers/); assert.match(conquest, /End turn/);
+  assert.match(conquest, /Transfer forces/); assert.match(conquest, /End turn/);
   assert.doesNotMatch(conquest, /Confirm conquest|Start attack/);
   const done = render(fixtures.boardFixture('completed'));
   assert.match(done, /This game is complete/); assert.match(done, /Winner/);
-  assert.doesNotMatch(done, /Advance one NPC action|Skip turn|aria-current="step"/);
+  assert.doesNotMatch(done, /Step · Advance one rival move|Skip turn|aria-current="step"/);
 });
 
 test('SSR presentation and selection perform zero fetches and preserve supplied state', () => {

@@ -75,7 +75,7 @@ assert.equal(html(createElement(battle.ActiveBattle,{game:fixtures.battleFixture
 test('commentary presentation preserves saved prose, clean label and existing explicit callbacks only',()=>{
 const v=view(),calls=[];const value={status:'ready',source:'groq',text:'The defenders held their ground.',action_id:v.props.entry.action_id};
 const element=commentary.BattleCommentaryView({game:v.props.game,entry:v.props.entry,display:{commentary:value,loading:false,error:null,requested:false},canGenerate:false,generate:()=>calls.push('generate'),check:()=>calls.push('check')});
-const text=html(element);assert.match(text,/<h5>Commentary<\/h5>/);assert.match(text,/The defenders held their ground/);assert.doesNotMatch(text,/AI Commentary|AI-generated|Written by AI|LLM|Groq/i);assert.deepEqual(calls,[]);
+const text=html(element);assert.match(text,/<h4>Battle Commentary<\/h4>/);assert.match(text,/The defenders held their ground/);assert.doesNotMatch(text,/AI Commentary|AI-generated|Written by AI|LLM|Groq/i);assert.deepEqual(calls,[]);
 const missing=commentary.BattleCommentaryView({game:v.props.game,entry:v.props.entry,display:{commentary:{status:'not_generated'},loading:false,error:null,requested:false},canGenerate:true,generate:()=>calls.push('generate'),check:()=>calls.push('check')});
 assert.doesNotMatch(html(missing),/geo-commentary/);[...nodes(missing)].find(e=>e.type==='button'&&e.props.children==='Check saved commentary').props.onClick();assert.deepEqual(calls,['check']);
 });

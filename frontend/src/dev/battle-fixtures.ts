@@ -3,7 +3,7 @@ import type { AppState } from '../game/controller.ts';
 import type { PublicCommittedAction, PublicGameEvent } from '../api/index.ts';
 import { boardFixture } from './board-fixtures.ts';
 export const battleModes = ['battle-ready','battle-inflight','battle-six','battle-many','battle-ties','battle-attacker-loss',
-  'battle-defender-loss','battle-mixed','battle-repeated','battle-conquest','battle-stopped','battle-spectator','battle-pending','battle-missing','battle-large'] as const;
+  'battle-defender-loss','battle-mixed','battle-repeated','battle-conquest','battle-stopped','battle-spectator','battle-pending','battle-missing','battle-large','battle-npc','battle-npc-fast-forward'] as const;
 export type BattleMode = typeof battleModes[number];
 export function battleFixture(mode: BattleMode): AppState {
   const state=boardFixture('attacking'), game=state.game!;
@@ -33,6 +33,15 @@ export function battleFixture(mode: BattleMode): AppState {
       operation:{gameId:state.gameId!,command:{action_id:'offline-unresolved-roll',expected_revision:12,action:{type:'roll'}}}};
   }
   if(mode==='battle-spectator'){state.owner=false;state.session=null;}
+  if(mode==='battle-npc'||mode==='battle-npc-fast-forward'){
+    state.game={...state.game,players:state.game.players!.map(player=>({...player,kind:player.id==='player-3'?'human' as const:'npc' as const}))};
+    const decision=boardFixture('npc').events[0]!.npc_decision!;
+    state.events=[{...entry,actor:{kind:'npc',player_id:'player-0'},npc_decision:{...decision,
+      explanation:'Synthetic saved NPC decision: continue the recorded attack from Brazil against Canada.',
+      evaluation:{...decision.evaluation,actor_id:'player-0'}}}];
+    state.lastResult={state:state.game,events,npc_decision:state.events[0]!.npc_decision};
+    state.fastForward=mode==='battle-npc-fast-forward';
+  }
   if(mode==='battle-stopped'){
     state.game={...state.game,revision:13,turn_sequence:12,phase:'deciding',current_turn:0,battle:null};
     const stopped:PublicGameEvent={type:'attack_stopped',actor_id:'player-0',round:2,turn_sequence:11,source_id:'brazil',target_id:'canada'};
@@ -57,6 +66,8 @@ export function advanceBattleFixture(state: AppState): AppState {
   if(conquered){const c=countries.find(c=>c.id===target.id)!;c.soldiers=2;c.owner_id=source.owner_id;
     events.push({type:'conquered',actor_id:'player-0',round:game.round!,turn_sequence:game.turn_sequence!,source_id:source.id,target_id:target.id,amount:2});}
   const next={...game,revision,countries,phase:conquered?'post_attack' as const:'attacking' as const,battle:conquered?null:battle};
-  const entry:PublicCommittedAction={revision,action_id:`offline-battle-${revision}`,actor:{kind:'human',player_id:'player-0'},committed_at:'2026-11-02T00:00:01Z',events};
-  return {...state,game:next,events:[...state.events,entry],lastResult:{state:next,events}};
+  const actor=game.players!.find(player=>player.id===source.owner_id)!;
+  const decision=actor.kind==='npc'?state.events.at(-1)?.npc_decision:null;
+  const entry:PublicCommittedAction={revision,action_id:`offline-battle-${revision}`,actor:{kind:actor.kind,player_id:actor.id},committed_at:'2026-11-02T00:00:01Z',events,npc_decision:decision};
+  return {...state,game:next,events:[...state.events,entry],lastResult:{state:next,events,npc_decision:decision}};
 }

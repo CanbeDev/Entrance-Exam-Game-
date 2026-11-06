@@ -5,6 +5,7 @@ import type { GameFilters } from '../api/index.ts';
 import { CopyWatchLink } from './WatchEntry.tsx';
 import { receiptTime } from './chronicle-view.ts';
 import { uiSound } from '../sound/SoundSettings.tsx';
+import { countryFlag } from '../flags/flags.ts';
 
 type Props = { state: AppState; controller: GameController; disabled: boolean; origin?: string; mode?: 'all' | 'library' | 'create' };
 export function Dashboard({ mode = 'all', ...props }: Props) {
@@ -30,7 +31,7 @@ export function GameLibrary({ state, controller, disabled, origin = '' }: Props)
     {state.games ? <>
       {state.games.games.length === 0 ? <div className="geo-empty"><span className="geo-label">{filtered ? 'No matches' : 'A clean map'}</span>
         <h3>{filtered ? 'No campaigns match this search.' : 'Your first campaign starts with one choice.'}</h3>
-        <p>{filtered ? 'Try a different game name or status.' : 'Pick a starting country and meet nine randomly selected NPC rivals.'}</p>
+        <p>{filtered ? 'Try a different game name or status.' : 'Pick a starting country and meet nine randomly selected rival commanders.'}</p>
         {!filtered && !state.pending && <a href="/new">Choose your country</a>}</div>
         : <ol className="geo-library__list">{state.games.games.map(game => {
           const updated = game.updated_at ? receiptTime(game.updated_at) : null;
@@ -56,6 +57,7 @@ export function NewCampaign({ state, controller, disabled }: Props) {
   const [selected, setSelected] = useState('');
   const [query, setQuery] = useState('');
   const country = state.catalog?.countries.find(item => item.id === selected);
+  const flag = countryFlag(country?.id);
   const choices = state.catalog?.countries.filter(item => item.id === selected || item.name.toLowerCase().includes(query.toLowerCase().trim())) ?? [];
   function create(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault(); if (disabled || !country) return;
@@ -66,19 +68,19 @@ export function NewCampaign({ state, controller, disabled }: Props) {
       <p>Choose your country. The server selects nine distinct rivals and the turn order when you create the game.</p></header>
     <div className="geo-setup__layout"><form onSubmit={create}><fieldset disabled={disabled || !state.catalog}>
       <legend>Choose your starting country</legend>
-      <label>Game name <input name="game_name" required maxLength={100} placeholder="Name your campaign" /></label>
       <label>Find a country <input value={query} onChange={event => { if (!disabled) setQuery(event.target.value); }} type="search" maxLength={100} /></label>
       <label>Starting country <select name="starting_country_id" required value={selected} onChange={event => { if (!disabled) { setSelected(event.target.value); uiSound('confirm'); } }}>
         <option value="" disabled>Choose a country</option>{choices.map(item => <option value={item.id} key={item.id}>{item.name} — {item.base_soldier_value} starting {item.base_soldier_value === 1 ? 'soldier' : 'soldiers'}</option>)}
       </select></label>
       {choices.length === 0 && state.catalog && <p role="status">No countries match that name.</p>}
+      <label>Game name <input name="game_name" required maxLength={100} placeholder="Name your campaign" /></label>
       <p className="geo-help">You are not guaranteed to take the first turn. Rivals appear after creation succeeds.</p>
       <button className="geo-screen-primary" disabled={!country} type="submit">Create game</button>
       {!country && <p className="geo-help">Choose a country before creating your campaign.</p>}
     </fieldset></form><aside className="geo-country-detail" aria-live="polite"><span className="geo-label">Your starting position</span>
-      {country ? <><h3>{country.name}</h3><dl><div><dt>Population</dt><dd>{country.population.toLocaleString('en-US')}</dd></div>
+      {country ? <>{flag && <img key={flag.src} className="geo-setup-flag" src={flag.src} alt={`Flag of ${country.name}`} width={64} height={48} onError={event => { event.currentTarget.hidden = true; }} />}<h3>{country.name}</h3><dl><div><dt>Population</dt><dd>{country.population.toLocaleString('en-US')}</dd></div>
         <div><dt>Starting soldiers</dt><dd className="geo-country-detail__soldiers">{country.base_soldier_value}</dd></div></dl>
-        <p>Starting strength comes from the population band. Future soldiers and ownership follow committed game state.</p></>
+        <p>Starting strength comes from the population band. Reinforcements and conquests will change your position during play.</p></>
         : <><h3>One country. Your choice.</h3><p>Select a country to see its recorded population and starting soldiers.</p></>}
       {!state.catalog && <p role="status">The country catalog is unavailable. Wait for loading or use Reconnect if an error is shown.</p>}
       {!state.pending && <a href="/rules#rules-setup">See starting soldier bands</a>}

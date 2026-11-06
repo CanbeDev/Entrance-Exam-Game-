@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { PublicActionResult, PublicCommittedAction, PublicGame } from '../api/index.ts';
 import { ResultPoster } from './ResultPoster.tsx';
-import { ActiveBattle } from './BattleExchange.tsx';
+import { LiveGameplay, SavedNpcDecision } from './LiveGameplay.tsx';
+import { phaseLabel, nextSavedParticipant } from './gameplay-view.ts';
+import { participantCountryName } from './refresh-view.ts';
 import { observePresentation } from './presentation.ts';
 import type { PresentationSnapshot } from './presentation.ts';
 import { activeParticipant, participantName } from '../game/view.ts';
@@ -14,7 +16,7 @@ import { CountryProgress, Panel, TurnIndicator } from '../ui/components.tsx';
 import '../ui/components.css';
 import '../map/atlas.css';
 import './game-shell.css';
-import { CountryCard, CountryInspector } from '../country/CountryCard.tsx';
+import { CountryCard, CountryInspection } from '../country/CountryCard.tsx';
 import { uiSound } from '../sound/SoundSettings.tsx';
 
 /** Read-only presentation adapter. It never repairs or writes authoritative state. */
@@ -79,7 +81,7 @@ export function GameBoard(props: GameBoardProps) {
     onCaptureSettled={id => setFeedback(value => ({ ...value, captured: value.captured.filter(country => country !== id) }))} />;
 }
 
-export function GameBoardContent({ game, actions, history, selectedId, onSelect, owner, pending, celebrate = false,
+export function GameBoardContent({ game, actions, history, latest, committed = emptyHistory, selectedId, onSelect, owner, pending, celebrate = false,
   capturedIds = [], onCelebrationSettled, onCaptureSettled }: GameBoardProps & {
   selectedId: string | null; onSelect: (id: string | null) => void;
   celebrate?: boolean; capturedIds?: readonly string[];
@@ -93,16 +95,27 @@ export function GameBoardContent({ game, actions, history, selectedId, onSelect,
     && Number.isInteger(game.current_turn) && game.current_turn! >= 0
     && game.current_turn! < (ordered?.length ?? 0) && !!model.active
     && model.ownershipKnown && game.countries?.some(c => c.owner_id === model.active!.id);
+  const next = turnKnown ? nextSavedParticipant(game) : null;
   return <div className="geo-game-board">
     <ResultPoster game={game} owner={owner} pending={pending} celebrate={celebrate} onSettled={onCelebrationSettled} />
     {game.status === 'active' && model.humanHeld === 0 && <section className="geo-elimination" aria-labelledby="elimination-title">
       <span className="geo-label">The campaign continues</span><h2 id="elimination-title">{owner ? 'Your participant has been eliminated.' : 'The human participant has been eliminated.'}</h2>
       <p>No countries remain under the human participant's control. The game is still active.</p>
-      <p>{owner ? 'You can continue the remaining NPC turns using Step or Fast-forward, or review the Chronicle.' : 'Follow the remaining NPCs and their committed decisions in the Chronicle.'}</p>
+      <p>{owner ? 'You can continue the remaining rival turns using Step or Fast-forward, or review the Chronicle.' : 'Follow the remaining rivals and their committed decisions in the Chronicle.'}</p>
       <a href="#history-title">Review the Chronicle</a>
     </section>}
-    <section className="geo-turn-strip" aria-labelledby="turn-order-title">
-      <h2 id="turn-order-title" className="geo-label">Players in turn order · Round {game.round ?? 'not recorded'}</h2>
+    <section className="geo-situation" aria-labelledby="situation-title">
+      <div><span className="geo-label">Round {game.round ?? 'not recorded'} · {model.active?.kind === 'human' ? 'Human turn' : model.active ? 'Rival turn' : game.status ?? 'Status not recorded'}</span>
+        <h2 id="situation-title">{model.active ? `${participantCountryName(game, model.active.id)}’s turn` : game.status === 'completed' ? 'Campaign complete' : 'Current turn not recorded'}</h2>
+        <p>{phaseLabel(game)}{next && <span className="geo-situation__next"> · Next in this round: {participantCountryName(game, next)}</span>}</p></div>
+      <div className="geo-situation__control"><span className="geo-label">{owner ? 'Your' : 'Human'} territory control</span>
+        {model.humanHeld !== null ? <CountryProgress held={model.humanHeld} label="Human participant's countries held" /> : <p>Not recorded</p>}</div>
+      <nav className="geo-game-shortcuts" aria-label="Gameplay sections">
+        <a href="#game-actions">{owner ? 'Go to actions' : 'Viewing controls'}</a><a href="#live-action">Latest action</a><a href="#countries-title">Countries</a><a href="#history-title">Chronicle</a>
+      </nav>
+    </section>
+    <details className="geo-turn-strip">
+      <summary id="turn-order-title">Full turn order{orderKnown ? ` · ${ordered!.length} participants` : ''}</summary>
       {orderKnown ? <ol>{ordered!.map((player, index) => {
         const eliminated = model.ownershipKnown && !game.countries!.some(c => c.owner_id === player!.id);
         const state = eliminated ? 'eliminated' : turnKnown ? index === game.current_turn ? 'active'
@@ -112,9 +125,30 @@ export function GameBoardContent({ game, actions, history, selectedId, onSelect,
             : <span>{participantName(game, player!.id)} · {game.status === 'completed' ? 'Game complete' : 'Turn status not recorded'}</span>}
         </li>;
       })}</ol> : <p>Saved turn order is not available.</p>}
-    </section>
+    </details>
     <div className="geo-game-grid" id="campaign-record" tabIndex={-1}>
-      <Panel title="Countries and soldiers" className="geo-game-roster">
+      <Panel title="World atlas" className="geo-game-map">
+        {model.atlasAvailable ? <><AtlasMap {...model.atlas} capturedIds={capturedIds} onCaptureSettled={onCaptureSettled}
+          inspectedId={selectedId} onInspect={onSelect} information={selectedId && <CountryCard key={selectedId} id={selectedId} game={game}
+            dismiss={() => { onSelect(null); document.getElementById('inspect-country')?.focus(); }} />} />
+        </> : <p>The atlas is unavailable for these incomplete or historical country identities. Available records remain in the country list.</p>}
+        {model.atlas.selectedId && <p className="geo-help">Home participant: {participantName(game,
+          game.players?.find(p => p.starting_country_id === model.atlas.selectedId)?.id)}.</p>}
+        <CountryInspection game={game} selectedId={selectedId} select={onSelect} showCard={!model.atlasAvailable} />
+        <details className="geo-board-help"><summary>Campaign details</summary>
+          <dl className="geo-game-facts">
+            <div><dt>Status</dt><dd>{game.status ?? 'Not recorded'}</dd></div>
+            <div><dt>Revision</dt><dd>{game.revision ?? 'Not recorded'}</dd></div>
+            {game.winner && <div><dt>Winner</dt><dd>{participantName(game, game.winner)}</dd></div>}
+          </dl>
+        </details>
+      </Panel>
+      <aside className="geo-panel geo-game-actions" aria-label="Game actions">
+        <div id="game-actions" tabIndex={-1}>{actions ?? <p>No action controls supplied.</p>}</div>
+        <SavedNpcDecision game={game} latest={latest} committed={committed} />
+      </aside>
+      <div className="geo-panel geo-game-live"><LiveGameplay game={game} latest={latest} committed={committed} pending={pending} /></div>
+      <div id="countries-title" tabIndex={-1} className="geo-game-roster"><Panel title="Countries and soldiers">
         {model.atlasAvailable ? <AtlasRoster {...model.atlas} /> : <table>
           <caption>Available country records</caption>
           <thead><tr><th scope="col">Country</th><th scope="col">Held by</th><th scope="col">Soldiers</th></tr></thead>
@@ -123,35 +157,10 @@ export function GameBoardContent({ game, actions, history, selectedId, onSelect,
           </tr>)}</tbody>
         </table>}
         {!game.countries?.length && <p>No country records are available.</p>}
-        {model.humanHeld !== null && game.countries?.length === 10 && <CountryProgress held={model.humanHeld} label="Human participant's countries held" />}
         {model.humanHeld === 0 && game.countries?.length === 10 && <p>The human participant has been eliminated.
-          {game.status === 'active' && ' The remaining NPCs can finish the match.'}</p>}
-        <p className="geo-help">A country stays in play when its original participant is eliminated. Its ring identifies its current owner.</p>
-      </Panel>
-      <Panel title="World atlas" className="geo-game-map">
-        <ActiveBattle game={game} pending={pending} />
-        <h3 className="geo-heading-md">{game.game_name}</h3>
-        <dl className="geo-game-facts">
-          <div><dt>Status</dt><dd>{game.status ?? 'Not recorded'}</dd></div>
-          <div><dt>Round</dt><dd>{game.round ?? 'Not recorded'}</dd></div>
-          <div><dt>Current turn</dt><dd>{model.active ? participantName(game, model.active.id) : game.status === 'completed' ? 'Game complete' : 'Not recorded'}</dd></div>
-          <div><dt>Turn phase</dt><dd>{game.phase?.replaceAll('_', ' ') ?? 'Not recorded'}</dd></div>
-          <div><dt>Revision</dt><dd>{game.revision ?? 'Not recorded'}</dd></div>
-          {game.winner && <div><dt>Winner</dt><dd>{participantName(game, game.winner)}</dd></div>}
-        </dl>
-        {model.atlasAvailable ? <><AtlasMap {...model.atlas} capturedIds={capturedIds} onCaptureSettled={onCaptureSettled}
-          inspectedId={selectedId} onInspect={onSelect} information={selectedId && <CountryCard key={selectedId} id={selectedId} game={game}
-            dismiss={() => { onSelect(null); document.getElementById('inspect-country')?.focus(); }} />} />
-          <p className="geo-help">PLAYING identifies the current participant's home country while they still hold it.
-            Selecting a country inspects it; use the existing action controls to choose an attack.</p>
-        </> : <p>The atlas is unavailable for these incomplete or historical country identities. Available records remain in the country list.</p>}
-        {model.atlas.selectedId && <p className="geo-help">Home participant: {participantName(game,
-          game.players?.find(p => p.starting_country_id === model.atlas.selectedId)?.id)}.</p>}
-        <CountryInspector game={game} selectedId={selectedId} select={onSelect} showCard={!model.atlasAvailable} />
-      </Panel>
-      <aside className="geo-panel geo-game-actions" aria-label="Game actions">
-        {actions ?? <p>No action controls supplied.</p>}
-      </aside>
+          {game.status === 'active' && ' The remaining rivals can finish the match.'}</p>}
+        <details className="geo-board-help"><summary>About ownership</summary><p className="geo-help">A country stays in play when its original participant is eliminated. Its ring and owner label identify its current owner.</p></details>
+      </Panel></div>
       <div className="geo-panel geo-game-history" aria-label="Chronicle">
         {history ?? <p>No history supplied.</p>}
       </div>

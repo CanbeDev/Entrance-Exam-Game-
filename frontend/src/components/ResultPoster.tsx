@@ -36,7 +36,7 @@ export function ResultPoster({ game, owner = false, pending = false, celebrate =
       <div className="geo-result__identity">
         <h2 id="campaign-result-title">{name}</h2>
         <p>{personalVictory ? 'The world is yours.' : result.winner ? `${name} has won the campaign.` : 'The campaign is complete. The winner is not recorded.'}</p>
-        {result.winner && <p className="geo-result__kind">{result.winner.kind === 'human' ? 'Human winner' : 'NPC winner'}
+        {result.winner && <p className="geo-result__kind">{result.winner.kind === 'human' ? 'Human winner' : 'Rival winner'}
           {result.allTen ? ' · Holds all ten participating countries' : ''}</p>}
       </div>
     </div>

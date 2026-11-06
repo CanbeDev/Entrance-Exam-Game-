@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PublicGame } from '../api/index.ts';
 import { countryFacts, canonicalCountries } from './facts.ts';
 import './country.css';
@@ -37,4 +37,10 @@ export function CountryInspector({ game, selectedId, select, showCard = true }: 
     {options.length === 0 && <p role="status">No country names match.</p>}
     {selectedId && showCard && <CountryCard key={selectedId} id={selectedId} game={game} dismiss={dismiss} />}
   </div>;
+}
+/** Keep the native disclosure open after dismissal so return focus stays visible. */
+export function CountryInspection(props: Parameters<typeof CountryInspector>[0]) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => { if (props.selectedId && ref.current) ref.current.open = true; }, [props.selectedId]);
+  return <details className="geo-board-help" ref={ref}><summary>Find or inspect a country</summary><CountryInspector {...props} /></details>;
 }

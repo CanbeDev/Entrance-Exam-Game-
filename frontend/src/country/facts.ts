@@ -15,7 +15,7 @@ export function countryFacts(id: string, game?: PublicGame) {
     population: current ? current.population ?? null : record.population,
     startingSoldiers: current ? current.base_soldier_value ?? null : record.startingSoldiers,
     currentSoldiers: current?.soldiers ?? null,
-    participating: !!current, owner: owner ? `${ownerHome?.name ?? owner.starting_country_id} (${owner.kind === 'human' ? 'Human' : 'NPC'})` : null,
+    participating: !!current, owner: owner ? `${ownerHome?.name ?? owner.starting_country_id} (${owner.kind === 'human' ? 'Human' : 'Rival'})` : null,
     target: !!current && game?.status === 'active' && game.phase === 'attacking' && game.battle?.target_id === canonicalId,
     from: !!current && game?.status === 'active' && game.phase === 'attacking' && game.battle?.source_id === canonicalId,
     snapshot: current ? 'Saved game' : reference.dataset };

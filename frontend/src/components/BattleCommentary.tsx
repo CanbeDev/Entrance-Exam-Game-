@@ -19,10 +19,10 @@ export function BattleCommentaryView({ entry, display, canGenerate, generate, ch
   const box = !!text || display.loading || pending;
   return <>
     {box && <section className="geo-commentary" aria-label={`Commentary for move ${entry.revision}`}>
-      <h5>Commentary</h5>
+      <h4>Battle Commentary</h4>
       {text && <p className="geo-commentary__prose">{text}</p>}
       {display.loading && <p role="status">Loading commentary. Gameplay remains available.</p>}
-      {pending && <p role="status">Commentary is being prepared. Check its saved outcome when ready.</p>}
+      {pending && <p role="status">Battle commentary is being prepared. Check its saved outcome when ready.</p>}
       {value?.status === 'fallback' && <p className="geo-help">Saved battle summary.</p>}
     </section>}
     {display.error && <p role="status">Commentary could not be confirmed. Gameplay is unaffected; check its saved outcome before trying again.</p>}

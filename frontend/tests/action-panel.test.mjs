@@ -44,7 +44,7 @@ const primaries = list => list.filter(e => e.type === ui.Button && (e.props.vari
 
 test('human has exactly one primary, explicit empty choices and legal source/enemy options', () => {
   const h = human(); assert.equal(primaries(h.list).length, 1);
-  assert.equal(h.button('Start attack').props.disabled, true);
+  assert.equal(h.button('Launch attack').props.disabled, true);
   const selects = h.list.filter(e => e.type === 'select');
   assert.equal(selects[0].props.value, ''); assert.equal(selects[1].props.value, '');
   const sourceOptions = [...nodes(selects[0])].filter(e => e.type === 'option' && e.props.value);
@@ -57,12 +57,12 @@ test('human has exactly one primary, explicit empty choices and legal source/ene
 
 test('attacker then target selection changes only the local draft and enables one explicit attack', () => {
   const attacker = human('human', { sourceId: 'brazil' });
-  assert.equal(attacker.button('Start attack').props.disabled, true);
+  assert.equal(attacker.button('Launch attack').props.disabled, true);
   assert.match(render(attacker.element), /Choose a rival target/);
   const select = attacker.list.find(e => e.type === 'select' && e.props.name === 'target');
   select.props.onChange({ target: { value: 'singapore' } }); assert.deepEqual(attacker.commands, []);
   const selected = human('human', attacker.drafts[0]);
-  assert.equal(selected.button('Start attack').props.disabled, false); selected.submit();
+  assert.equal(selected.button('Launch attack').props.disabled, false); selected.submit();
   assert.deepEqual(selected.commands, [{ type: 'start_attack', source_id: 'brazil', target_id: 'singapore' }]);
 });
 
@@ -70,7 +70,7 @@ test('invalid, owned, missing and one-soldier attack choices never submit comman
   for (const [mode, draft] of [['human', { sourceId: 'canada', targetId: 'brazil' }],
     ['human', { sourceId: 'brazil', targetId: 'brazil' }], ['human', { sourceId: 'brazil', targetId: 'missing' }],
     ['no-attack-source', { sourceId: 'brazil', targetId: 'canada' }]]) {
-    const h = human(mode, draft); h.submit(); assert.deepEqual(h.commands, []); assert.equal(h.button('Start attack').props.disabled, true);
+    const h = human(mode, draft); h.submit(); assert.deepEqual(h.commands, []); assert.equal(h.button('Launch attack').props.disabled, true);
   }
 });
 
@@ -85,10 +85,10 @@ test('busy/uncertain/disabled human commands and input updates are inert', () =>
 test('attack phase preserves exact roll/stop commands, locked pair and uncapped textual dice preview', () => {
   const h = human('attacking');
   assert.equal(primaries(h.list).length, 1); assert.equal(h.button('Roll battle dice').props.disabled, false);
-  h.button('Roll battle dice').props.onClick(); h.button('Stop attack and end turn').props.onClick();
+  h.button('Roll battle dice').props.onClick(); h.button('End assault and turn').props.onClick();
   assert.deepEqual(h.commands, [{ type: 'roll' }, { type: 'stop_attack' }]);
   assert.match(render(h.element), /Next exchange: 9 dice each side/);
-  assert.doesNotMatch(render(h.element), /Choose an attacking country|Transfer soldiers<\/button>/);
+  assert.doesNotMatch(render(h.element), /Choose an attacking country|Transfer forces<\/button>/);
   const missing = human('attacking', {}, { game: { ...h.state.game, battle: null } });
   assert.equal(missing.button('Roll battle dice').props.disabled, true);
   missing.button('Roll battle dice').props.onClick(); assert.deepEqual(missing.commands, []);
@@ -109,12 +109,12 @@ test('same-country, enemy, zero and excessive transfers are non-destructive', ()
   for (const draft of [{ transferTargetId: 'brazil', amount: 1 }, { transferTargetId: 'uk', amount: 1 },
     { transferTargetId: 'canada', amount: 0 }, { transferTargetId: 'canada', amount: 10 }]) {
     const h = human('conquest', { mode: 'transfer', transferSourceId: 'brazil', ...draft });
-    h.submit(); assert.deepEqual(h.commands, []); assert.equal(h.button('Transfer soldiers').props.disabled, true);
+    h.submit(); assert.deepEqual(h.commands, []); assert.equal(h.button('Transfer forces').props.disabled, true);
   }
 });
 
 test('transfer navigation is local and choosing a smaller source safely clamps the draft amount', () => {
-  const h = human('conquest'); h.button('Transfer soldiers').props.onClick();
+  const h = human('conquest'); h.button('Transfer forces').props.onClick();
   assert.equal(h.drafts[0].mode, 'transfer'); assert.deepEqual(h.commands, []);
   const transfer = human('conquest', { mode: 'transfer', transferSourceId: 'canada', transferTargetId: 'brazil', amount: 10 });
   transfer.list.filter(e => e.type === 'select')[0].props.onChange({ target: { value: 'brazil' } });
@@ -125,7 +125,7 @@ test('transfer navigation is local and choosing a smaller source safely clamps t
 test('post-attack exposes end-turn, optional transfer and no new attack or conquest confirmation', () => {
   for (const mode of ['conquest', 'failed-attack']) {
     const h = human(mode); assert.equal(primaries(h.list).length, 1);
-    assert.ok(h.button('End turn')); assert.equal(h.button('Start attack'), undefined);
+    assert.ok(h.button('End turn')); assert.equal(h.button('Launch attack'), undefined);
     h.button('End turn').props.onClick(); assert.deepEqual(h.commands, [{ type: 'end_turn' }]);
     assert.doesNotMatch(render(h.element), /Confirm conquest/);
     if (mode === 'failed-attack') assert.doesNotMatch(render(h.element), /was conquered/);
@@ -134,7 +134,7 @@ test('post-attack exposes end-turn, optional transfer and no new attack or conqu
 
 test('reinforcement uses supplied pool, exact allocation payload and no competing award calculation', () => {
   const h = human('allocating', { allocations: { brazil: 1, canada: 3 } });
-  assert.equal(primaries(h.list).length, 1); assert.equal(h.button('Allocate reinforcements').props.disabled, false);
+  assert.equal(primaries(h.list).length, 1); assert.equal(h.button('Deploy reinforcements').props.disabled, false);
   h.submit(); assert.deepEqual(h.commands, [{ type: 'allocate', allocations: [{ country_id: 'brazil', amount: 1 }, { country_id: 'canada', amount: 3 }] }]);
   assert.match(render(h.element), /0 remaining/);
   assert.ok(h.list.filter(e => e.type === ui.NumericStepper).every(e => e.props.max === 4));
@@ -145,7 +145,7 @@ test('reinforcement uses supplied pool, exact allocation payload and no competin
 test('incomplete, over-budget, fractional or missing reinforcement values cannot submit', () => {
   for (const allocations of [{}, { brazil: 3 }, { brazil: 5 }, { brazil: 1.5, canada: 2.5 }, { brazil: -1, canada: 5 }]) {
     const h = human('allocating', { allocations }); h.submit(); assert.deepEqual(h.commands, []);
-    assert.equal(h.button('Allocate reinforcements').props.disabled, true);
+    assert.equal(h.button('Deploy reinforcements').props.disabled, true);
   }
   assert.match(render(human('missing-budget').element), /budget is not available/);
   const state = fixtures.boardFixture('allocating');
@@ -154,13 +154,13 @@ test('incomplete, over-budget, fractional or missing reinforcement values cannot
 
 test('NPC Step and Fast-forward call the existing callbacks once, while Pause remains enabled in flight', () => {
   const ready = npc(); assert.equal(primaries([...nodes(ready.element)]).length, 1);
-  ready.buttons.find(b => b.props.children === 'Advance one NPC action').props.onClick();
-  ready.buttons.find(b => b.props.children === 'Fast-forward NPCs').props.onClick(); assert.deepEqual(ready.calls, ['step', 'fast']);
+  ready.buttons.find(b => b.props.children === 'Step · Advance one rival move').props.onClick();
+  ready.buttons.find(b => b.props.children === 'Fast-forward rivals').props.onClick(); assert.deepEqual(ready.calls, ['step', 'fast']);
   const running = npc('npc-in-flight');
   assert.equal(primaries([...nodes(running.element)]).length, 1);
-  running.buttons.find(b => b.props.children === 'Advance one NPC action').props.onClick();
-  running.buttons.find(b => b.props.children === 'Fast-forward NPCs').props.onClick();
-  const pause = running.buttons.find(b => b.props.children === 'Pause NPC fast-forward');
+  running.buttons.find(b => b.props.children === 'Step · Advance one rival move').props.onClick();
+  running.buttons.find(b => b.props.children === 'Fast-forward rivals').props.onClick();
+  const pause = running.buttons.find(b => b.props.children === 'Pause rival turns');
   assert.equal(pause.props.disabled, undefined); pause.props.onClick(); assert.deepEqual(running.calls, ['pause']);
   assert.match(render(running.element), /already submitted action may still finish/);
 });

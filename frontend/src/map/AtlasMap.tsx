@@ -13,7 +13,7 @@ const color = (faction: number) => `var(--geo-${faction === 0 ? 'forest' : `riva
 function ownerLabel(props: AtlasProps, id: string) {
   const player = props.players.find(p => p.id === id)!;
   const name = data.countries.find(c => c.id === player.starting_country_id)?.name ?? player.starting_country_id;
-  return `${name} (${player.kind === 'human' ? 'Human' : 'NPC'})`;
+  return `${name} (${player.kind === 'human' ? 'Human' : 'Rival'})`;
 }
 
 function roster(props: AtlasProps, handlers: ReadonlyMap<string, () => void>, showHomeIdentity = false) {
@@ -24,7 +24,7 @@ function roster(props: AtlasProps, handlers: ReadonlyMap<string, () => void>, sh
         kind={props.players.find(p => p.id === country.owner_id)!.kind} faction={factions.get(country.owner_id)! as Faction}
         state={country.id === props.targetId ? 'target' : country.id === props.fromId ? 'from' : country.id === props.playingId ? 'playing' : 'default'}
         onSelect={handlers.get(country.id)} />
-      {showHomeIdentity && props.players.filter(p => p.starting_country_id === country.id).map(p =>
+      {showHomeIdentity && props.players.filter(p => p.starting_country_id === country.id && p.id !== country.owner_id).map(p =>
         <span key={p.id} className="geo-help">Home participant: {ownerLabel(props, p.id)}</span>)}
       {props.selectedId === country.id && <span className="geo-help">Selected</span>}
     </div>)}
@@ -49,14 +49,13 @@ export function AtlasContent(props: AtlasProps & InformationProps) {
   const ownerName = (id: string) => {
     const player = props.players.find(p => p.id === id)!;
     const name = data.countries.find(c => c.id === player.starting_country_id)?.name ?? player.starting_country_id;
-    return `${name} (${player.kind === 'human' ? 'Human' : 'NPC'})`;
+    return `${name} (${player.kind === 'human' ? 'Human' : 'Rival'})`;
   };
   const relation = props.battle;
   const battleText = relation ? `${relation.preview ? 'Preview' : 'Attack'}: ${countries.get(relation.source_id)!.name} → ${countries.get(relation.target_id)!.name}` : null;
   const point = (id: string) => data.countries.find(c => c.id === id)!.anchor;
   return <section className="geo-atlas" aria-label="Interactive world atlas">
     <p>Any rival country can be attacked regardless of distance. Select a country to inspect it.</p>
-    <p className="geo-help">On narrow screens, scroll the map horizontally or use the full country list below.</p>
     {battleText && <p className="geo-atlas__relationship">{battleText}</p>}
     <div className="geo-atlas__scroll" role="region" aria-label="Scrollable world map" tabIndex={0}>
       <div className="geo-atlas__canvas" style={{ width: layout.width, height: layout.height }}>
@@ -91,12 +90,13 @@ export function AtlasContent(props: AtlasProps & InformationProps) {
               '--geo-faction': color(faction) } as CSSProperties}>
             <span className="geo-atlas__number" data-compact={country.soldiers >= 1_000_000}>{formatMapCount(country.soldiers)}</span>
             <span className="geo-atlas__name">{country.name}</span>
-            <span className="geo-atlas__cue">{cue || (props.selectedId === country.id ? 'SELECTED' : entry.missingShape ? 'LOCATION MARKER' : '')}</span>
+            <span className="geo-atlas__cue">{cue || (props.selectedId === country.id ? 'SELECTED' : '')}</span>
           </button>;
         })}
       </div>
     </div>
-    <p className="geo-help">Map geometry: Simplemaps (MIT). Small countries without source borders use verified location markers.</p>
+    <details className="geo-board-help"><summary>Map help and attribution</summary><p className="geo-help">On narrow screens, scroll the map horizontally or use the full country list below. PLAYING marks the acting participant's home while they still hold it. Rings show current owners; the roster names each owner.</p>
+      <p className="geo-help">Map geometry: Simplemaps (MIT). Small countries without source borders use verified location markers and leader lines.</p></details>
     {layout.packed && <p className="geo-help">Country markers are arranged for readability; lines connect them to their locations.</p>}
     {props.showRoster !== false && <h3 className="geo-panel__title">Countries and soldiers</h3>}
     {props.selectedId && <p role="status">Selected: {countries.get(props.selectedId)!.name}, {countries.get(props.selectedId)!.soldiers} soldiers,

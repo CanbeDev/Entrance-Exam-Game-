@@ -3,7 +3,7 @@ import type { AppState } from '../game/controller.ts';
 import type { BattleCommentary, PublicCommittedAction, PublicGame } from '../api/index.ts';
 import catalog from '../../../backend/app/data/countries.json';
 
-export const boardModes = ['human', 'attacking', 'conquest', 'allocating', 'npc', 'eliminated', 'completed',
+export const boardModes = ['human', 'refreshing', 'attacking', 'conquest', 'allocating', 'npc', 'eliminated', 'completed',
   'spectator', 'refresh-error', 'pending', 'loading', 'legacy', 'npc-fast-forward', 'npc-in-flight',
   'pending-human', 'no-attack-source', 'missing-budget', 'failed-attack', 'victory-nepal', 'victory-holy-see',
   'npc-victory', 'result-incomplete', 'result-missing-flag', 'spectator-result', 'victory-long-name'] as const;
@@ -61,7 +61,7 @@ export function boardFixture(mode: BoardMode = 'human'): AppState {
   return { ready: mode !== 'loading', busy: mode === 'loading' || mode === 'npc-in-flight', session: mode === 'spectator' || mode === 'spectator-result' ? null : { user: account },
     error: mode === 'pending' || mode === 'pending-human' ? 'Offline uncertain-response fixture. No request was sent.' : null,
     notice: 'OFFLINE PRESENTATION FIXTURE — no production connection or gameplay engine.',
-    refreshing: false, refreshError: mode === 'refresh-error' ? 'Offline refresh failure' : null,
+    refreshing: mode === 'refreshing', refreshError: mode === 'refresh-error' ? 'Offline refresh failure' : null,
     catalog: null, games: null, filters: {}, cursors: [undefined], gameId: boardGameId,
     game: mode === 'loading' ? null : game, owner: mode !== 'spectator' && mode !== 'spectator-result', events: mode === 'legacy' ? [] : [entry],
     eventCursor: 12, moreEvents: false, lastResult: mode === 'conquest' ? { state: game, events: [{ type: 'conquered',

@@ -22,13 +22,24 @@ export function SoundSettings() {
     listeners.add(notify); return () => { unsubscribe(); listeners.delete(notify); pageSound.stop(); };
   }, []);
   function enable() { pageSound.activate(); setActivated(true); setMessage(''); }
-  return <details className="geo-sound" id="sound-settings"><summary>Sound {preferences.enabled ? 'on' : 'off'}</summary>
+  function setEnabled(enabled: boolean) {
+    const next = { ...preferences, enabled };
+    if (next.enabled) enable(); setPreferences(next); savePreferences(next); pageSound.configure(next);
+    if (next.enabled) uiSound('select');
+  }
+  return <div className="geo-sound-utility" id="sound-settings">
+    <button type="button" className="geo-sound-toggle" aria-pressed={preferences.enabled}
+      aria-label={preferences.enabled ? 'Sound on. Mute sound' : 'Sound off. Enable sound'}
+      title={preferences.enabled ? 'Sound on. Mute sound' : 'Sound off. Enable sound'} onClick={() => setEnabled(!preferences.enabled)}>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+        <path d="M11 5 6 9H3v6h3l5 4Z" />
+        {preferences.enabled ? <><path d="M15 8a6 6 0 0 1 0 8" /><path d="M18 5a10 10 0 0 1 0 14" /></>
+          : <path d="m15 9 6 6m0-6-6 6" />}
+      </svg>
+    </button>
+    <details className="geo-sound"><summary title="Sound settings"><span className="geo-visually-hidden">Sound settings</span><span aria-hidden="true">⌄</span></summary>
     <fieldset><legend>Sound effects</legend>
-      <label><input type="checkbox" checked={preferences.enabled} onChange={event => {
-        const next = { ...preferences, enabled: event.currentTarget.checked };
-        if (next.enabled) enable(); setPreferences(next); savePreferences(next); pageSound.configure(next);
-        if (next.enabled) uiSound('select');
-      }} /> Sound on</label>
+      <label><input type="checkbox" checked={preferences.enabled} onChange={event => setEnabled(event.currentTarget.checked)} /> Sound on</label>
       <label>Effects volume <input type="range" min={0} max={100} step={1} value={Math.round(preferences.volume * 100)} onChange={event => {
         const next = { ...preferences, volume: Number(event.target.value) / 100 };
         setPreferences(next); savePreferences(next); pageSound.configure(next);
@@ -37,7 +48,8 @@ export function SoundSettings() {
       <p className="geo-help">Optional effects. Sound starts only after you enable playback in this tab.</p>
       {message && <p role="status">{message}</p>}
     </fieldset>
-  </details>;
+    </details>
+  </div>;
 }
 export function GameplaySound({ state }: { state: AppState }) {
   const lastError = useRef<string | null>(null);
