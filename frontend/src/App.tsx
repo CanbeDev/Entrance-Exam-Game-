@@ -55,6 +55,7 @@ export function AppView({ state, controller, now, origin, screen = 'home' }: {
   const recoveryLogin = !!state.pending && state.session?.user.id !== state.pending.account.id;
   const npcLimitReached = state.npcAttemptBudget !== null && state.npcAttempts >= state.npcAttemptBudget;
   const staticPage = screen === 'rules' || screen === 'invalid';
+  const serviceUnavailable = !!state.error && /unavailable|network|connect|server|timed? ?out/i.test(state.error);
   const landing = !state.gameId && !state.session && !state.pending && !staticPage && screen !== 'watch';
   const accountForm = state.ready && (!state.session || recoveryLogin) && <AuthForm key={state.pending ? 'recovery' : 'login'}
     recoveryUsername={state.pending?.account.username} registrationInvitation={landing} displayRef={landing ? accountDisplay : undefined} disabled={!state.ready || state.busy || now < state.retryAt}
@@ -86,9 +87,16 @@ export function AppView({ state, controller, now, origin, screen = 'home' }: {
     {state.refreshError && <p role="alert">Game update failed: {state.refreshError} The last confirmed board is still shown. Use Check game status to try again.</p>}
     {state.refreshError && <div className="geo-refresh-tools">{statusTools}</div>}
     {state.ready && state.gameId && !state.game && !state.busy && <section className="geo-empty" aria-labelledby="game-unavailable-title"><h2 id="game-unavailable-title">Game unavailable</h2>
-      <p role="status">No game data is available. The link may be incorrect or the game could not be loaded. Review any error below or use Reconnect.</p>{watch}</section>}
+      <p role="status">No game data is available. The link may be incorrect or the game could not be loaded. Review any error below and use Try again.</p>{watch}</section>}
     {state.notice && <p role="status">{state.notice}</p>}
-    {state.error && <p role="alert">{state.error}</p>}
+    {serviceUnavailable && !state.pending && <aside className="geo-service-notice" aria-label="Connection notice">
+      <div role="alert"><p><strong>Connection needs attention.</strong> {state.error}</p>
+      <p>The server may be waking or temporarily unavailable. Try again when you are ready.</p></div>
+      {state.ready && <button disabled={disabled} onClick={() => void controller.initialize(state.gameId)}>Try again</button>}
+    </aside>}
+    {state.error && (state.pending || !serviceUnavailable) && <p role="alert">{state.error}</p>}
+    {state.error && !serviceUnavailable && !state.pending && state.ready && <button disabled={disabled}
+      onClick={() => void controller.initialize(state.gameId)}>Try again</button>}
     {now < state.retryAt && <p role="status">Try again in {Math.ceil((state.retryAt - now) / 1000)} seconds.</p>}
     {state.pending && !state.busy && !state.fastForward && <section className="geo-recovery" aria-label="Unresolved request">
       <h2>Confirming your move</h2>
@@ -141,7 +149,6 @@ export function AppView({ state, controller, now, origin, screen = 'home' }: {
             && current.owner && !!current.session && !current.pending && !current.busy; }}
         disabled={disabled || state.fastForward} loadMore={() => void controller.moreHistory()} />} />
     </>}
-    {state.ready && state.error && !state.pending && <button disabled={disabled} onClick={() => void controller.initialize(state.gameId)}>Reconnect</button>}
     <footer className="geo-site-footer"><span>Geopolitics · UCT INF4001N 2027 entrance project</span><span>Map: Simplemaps (MIT) · Population data: Worldometer</span>
       {!state.pending && <a href="/rules#rules-watch">About battle narration and results</a>}</footer>
   </main>;

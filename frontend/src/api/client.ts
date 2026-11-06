@@ -1,7 +1,7 @@
 import type {
   ActionCommand, ActionOutcome, CountryCatalog, Credentials, CsrfResponse, EventFilters,
   GameFilters, GameSetupRequest, HealthResponse, HomeResponse, LoginResponse, NpcStepRequest,
-  PublicEventPage, PublicGame, PublicGameList, Session, UserPublic, BattleCommentary,
+  PublicEventPage, PublicGame, PublicGameList, Session, UserPublic, BattleCommentary, CommentaryPreference,
 } from './contracts.ts';
 import { ApiError, HttpClient } from './http.ts';
 import type { HttpOptions } from './http.ts';
@@ -51,6 +51,16 @@ function query(filters: Record<string, unknown>): string {
 
 /** One client per browser session; all session/CSRF state is memory-only. */
 export class GameApi {
+  commentaryPreference(id: string): Promise<CommentaryPreference> {
+    return this.http.request(`/games/${gameId(id)}/commentary-preference`, { parse: component('CommentaryPreference') });
+  }
+  setCommentaryPreference(id: string, enabled: boolean, expectedVersion: number): Promise<CommentaryPreference> {
+    id = gameId(id);
+    return this.serial(`commentary-preference:${id}`, () => this.http.request(`/games/${id}/commentary-preference`, {
+      method: 'POST', headers: this.csrfHeaders(), body: { enabled, expected_version: integer(expectedVersion, 0) },
+      parse: component('CommentaryPreference'),
+    }));
+  }
   private readonly http: HttpClient;
   #csrf: string | undefined;
   private session: Session | null = null;

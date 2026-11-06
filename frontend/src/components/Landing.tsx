@@ -79,24 +79,5 @@ export function Landing({ account, watch, onBeginCampaign }: { account: ReactNod
           <figcaption>— Sun Tzu, <cite>The Art of War</cite>, Chapter 3<span>Concise English rendering</span></figcaption></figure></header>
       <ol>{orders.map((order, index) => <li key={order.title}><div className="geo-landing__order-number"><span>0{index + 1}</span><CampaignSymbol name={order.icon} /></div><h3>{order.title}</h3><p>{order.copy}</p></li>)}</ol>
     </section>
-    <section className="geo-landing__features" aria-labelledby="campaign-features-title">
-      <header className="geo-landing__section-heading"><span className="geo-landing__eyebrow">Built for commanders</span><h2 id="campaign-features-title">A serious game<br /><em>of consequence.</em></h2></header>
-      <div className="geo-landing__feature-grid">
-        <article><div className="geo-landing__feature-art"><CampaignSymbol name="compass" /></div><h3>A living world atlas</h3><p>Explore participating countries, their soldiers and who holds them.</p></article>
-        <article><div className="geo-landing__feature-art"><CampaignSymbol name="target" /></div><h3>Nine autonomous rivals</h3><p>Read the original strategic reasoning behind rival commanders’ committed moves.</p></article>
-        <article><div className="geo-landing__feature-art"><CampaignSymbol name="dice" /></div><h3>Transparent combat</h3><p>Every recorded die, casualty and territory change stays available for review.</p></article>
-        <article><div className="geo-landing__feature-art"><CampaignSymbol name="flag" /></div><h3>The campaign Chronicle</h3><p>Follow saved orders, battles and commentary through the campaign’s history.</p></article>
-      </div>
-    </section>
-    <section className="geo-landing__preview" aria-labelledby="campaign-preview-title">
-      <header className="geo-landing__section-heading"><span className="geo-landing__eyebrow"><CampaignSymbol name="shield" /> Command interface</span><h2 id="campaign-preview-title">Your campaign. <em>Your command.</em></h2>
-        <p>The world atlas establishes the situation. Your turn sets the decision. Confirmed battle reports, original rival reasoning and the Chronicle preserve the consequences.</p>
-        <a className="geo-landing__text-link" href="#command-access">Enter the command room <span aria-hidden="true">↗</span></a>
-        <div className="geo-landing__preview-engraving" aria-hidden="true"><CampaignSymbol name="dice" /><span /><CampaignSymbol name="signal" /></div></header>
-      <figure><div className="geo-landing__preview-label">Interface demonstration · Offline fixture · Not a live campaign</div>
-        <img src="/assets/landing/campaign-preview.png" width={1440} height={900} loading="lazy" decoding="async" alt="Demonstration of the Geopolitics interface: world atlas, current turn, countries held and attack controls. This is an offline fixture, not a live campaign." />
-        <figcaption>An image of the existing interface. Demonstration values do not represent an active campaign.</figcaption>
-      </figure>
-    </section>
   </div>;
 }

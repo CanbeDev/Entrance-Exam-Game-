@@ -83,6 +83,15 @@ test('a stale read cannot overwrite newly generated narration', async () => {
   assert.equal((await client.get(id, 2)).status, 'ready');
 });
 
+test('an interrupted projection can retrieve a later saved ready result without provider replay', async () => {
+  let reads = 0, writes = 0;
+  const client = new BattleCommentaryRequests(async () => ++reads === 1
+    ? { ...value(2, 'fallback'), reason: 'interrupted' } : value(), async () => { writes++; return value(); });
+  assert.equal((await client.get(id, 2)).reason, 'interrupted');
+  assert.equal((await client.get(id, 2, true)).status, 'ready');
+  assert.equal(reads, 2); assert.equal(writes, 0);
+});
+
 test('saved pending commentary is checked with GET rather than another POST', async () => {
   let reads = 0, writes = 0;
   const client = new BattleCommentaryRequests(async () => ++reads === 1 ? value(2, 'pending') : value(), async () => { writes++; return value(); });
@@ -230,7 +239,8 @@ test('real commentary UI renders human/NPC narration, fallback/loading and spect
       disabled: false, loadMore() {}, api: {}, gameId: id, canGenerateCommentary: true,
       commentaryAccountId: 'fixture-owner', liveCommentaryAllowed: true, canStartCommentary: () => true }));
     assert.match(owner, /Commentary for new battles/);
-    assert.match(owner, /checked=""/);
+    assert.doesNotMatch(owner, /checked=""/); // Server preference is not assumed before its owner-only GET.
+    assert.match(owner, /checking the saved campaign preference/);
   } finally { await server.close(); }
 });
 

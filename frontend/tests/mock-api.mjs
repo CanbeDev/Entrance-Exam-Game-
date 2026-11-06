@@ -107,6 +107,11 @@ export function createMockApi({ seed = false } = {}) {
       if (!creations.has(key)) creations.set(key, structuredClone(addGame(user.id, body.game_name)));
       return json(creations.get(key), 201);
     }
+    const preference = /^\/games\/([a-f0-9]{24})\/commentary-preference$/.exec(route);
+    if (preference && method === 'GET') {
+      if (owners.get(preference[1]) !== user.id) return fail(403, 'game_not_owned');
+      return json({ game_id: preference[1], mode: 'browser', enabled: false, version: 0, activation_revision: null });
+    }
     const match = /^\/games\/([a-f0-9]{24})(?:\/(actions|npc-steps|events))?$/.exec(route);
     if (!match || !games.has(match[1])) return fail(404, 'game_not_found');
     const [_, id, operation] = match;

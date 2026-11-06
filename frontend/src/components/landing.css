@@ -30,7 +30,7 @@
 .geo-landing--public .geo-landing__watermark { display: flex; align-items: center; gap: 2px; pointer-events: none; color: var(--geo-forest); opacity: .3; }
 .geo-landing__watermark .geo-landing-symbol { inline-size: 52px; block-size: 52px; stroke-width: .9; transform: rotate(-12deg); }
 .geo-landing__watermark .geo-landing-symbol + .geo-landing-symbol { inline-size: 38px; block-size: 38px; transform: rotate(12deg); }
-.geo-landing--public .geo-landing__map { margin: 0; transform: rotate(1deg); }
+.geo-landing--public .geo-landing__map { margin: 0; transform: none; }
 .geo-landing__atlas-frame { padding: 16px; border: 1px solid var(--geo-border); border-radius: 14px; background: var(--geo-parchment); box-shadow: 8px 8px 0 var(--geo-sand), 0 16px 32px #1a31270c; }
 .geo-landing__atlas-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-block-end: 12px; color: var(--geo-forest); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
 .geo-landing--public .geo-landing__map .geo-landing__geography { inline-size: 100%; display: block; border: 1px solid var(--geo-border); border-radius: 4px; background: var(--geo-ocean); }

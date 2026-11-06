@@ -29,7 +29,7 @@ export function BattleCommentaryView({ entry, display, canGenerate, generate, ch
     {!box && !display.error && <p className="geo-help">Commentary is not available for this exchange.</p>}
     {canGenerate && !display.loading && !display.requested && (!value || value.status === 'not_generated')
       && <button onClick={generate}>Generate commentary</button>}
-    {!display.loading && (pending || value?.status === 'not_generated' || display.error || display.requested && !ready && value?.status !== 'fallback')
+    {!display.loading && (pending || value?.status === 'not_generated' || value?.reason === 'interrupted' || display.error || display.requested && !ready && value?.status !== 'fallback')
       && <button onClick={check}>Check saved commentary</button>}
   </>;
 }

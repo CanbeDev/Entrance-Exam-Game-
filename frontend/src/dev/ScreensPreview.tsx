@@ -18,6 +18,7 @@ function ScreensPreview() {
     api: { battleCommentary: async (_game: string, revision: number) => ({ ...fixtureNarration(), revision,
       action_id: state.events.find(entry => entry.revision === revision)?.action_id ?? 'offline-unrecorded' }),
       generateBattleCommentary: async () => { record('commentary generation'); return fixtureNarration(); },
+      commentaryPreference: async (gameId: string) => ({ game_id: gameId, mode: 'browser', enabled: false, version: 0, activation_revision: null }),
       events: async () => ({ events: [], after_revision: state.game?.revision ?? 0, next_after_revision: state.game?.revision ?? 0, has_more: false }) },
     authenticate: (_credentials: unknown, register: boolean) => record(register ? 'register and log in' : 'log in'),
     logout: () => record('logout'), create: () => record('create game'), dashboard: () => record('search games'),

@@ -10,6 +10,7 @@ import { chronicleEntries, chronicleWindow, receiptRound, receiptTime } from './
 import './chronicle.css';
 import { participantCountryName } from './refresh-view.ts';
 import { actionSummary } from './gameplay-view.ts';
+import { useCommentaryPreference } from './CommentaryPreferences.tsx';
 
 const names: Record<PublicGameEvent['type'], string> = {
   attack_started: 'Attack started', dice_exchange: 'Dice exchange', conquered: 'Country conquered',
@@ -41,11 +42,13 @@ export function History({ game, events, latest, more, disabled, loadMore, api, g
   canStartCommentary: () => boolean;
 }) {
   const [automatic, setAutomatic] = useState(true);
+  const preference = useCommentaryPreference(api, gameId, commentaryAccountId);
+  const browserMode = preference.value?.mode === 'browser' && !preference.error;
   const [battleLedger] = useState(() => createExchangeLedger(game.revision));
   const previousGame = useRef<PublicGame | null>(null);
   useEffect(() => { previousGame.current = game; }, [game]);
   const permission = useRef(canStartCommentary);
-  permission.current = canStartCommentary;
+  permission.current = () => browserMode && canStartCommentary();
   const [liveResults, setLiveResults] = useState<ReadonlyMap<number, LiveCommentaryUpdate>>(() => new Map());
   const [live] = useState(() => new NewBattleCommentary(
     (id, revision, permitted) => api.generateBattleCommentary(id, revision, permitted),
@@ -58,10 +61,10 @@ export function History({ game, events, latest, more, disabled, loadMore, api, g
     () => permission.current(),
   ));
   useEffect(() => {
-    live.contextChanged(gameId, commentaryAccountId, liveCommentaryAllowed);
+    live.contextChanged(gameId, commentaryAccountId, browserMode && liveCommentaryAllowed);
     if (!live.active) setAutomatic(false);
     live.observe(game.revision ?? 0);
-  }, [live, gameId, commentaryAccountId, liveCommentaryAllowed, game, automatic]);
+  }, [live, gameId, commentaryAccountId, liveCommentaryAllowed, browserMode, game, automatic]);
   useEffect(() => () => live.dispose(), [live]);
   const [collapsed, setCollapsed] = useState(false);
   const [page, setPage] = useState(0);
@@ -75,15 +78,26 @@ export function History({ game, events, latest, more, disabled, loadMore, api, g
     </header>
     <p className="geo-help">Committed history · Latest moves first. {entries.length} loaded {entries.length === 1 ? 'move' : 'moves'}{more ? '; earlier records available' : ''}.</p>
     <div id="chronicle-content" hidden={collapsed}>
-    {commentaryAccountId && (canGenerateCommentary || automatic) && <details className="geo-chronicle__settings">
+    {commentaryAccountId && <details className="geo-chronicle__settings">
       <summary>Commentary settings</summary>
-      <label><input type="checkbox" checked={automatic} disabled={!automatic && !liveCommentaryAllowed}
+      {!preference.value && <p className="geo-help">Commentary for new battles: checking the saved campaign preference.</p>}
+      {browserMode && <label><input type="checkbox" checked={automatic} disabled={!automatic && !liveCommentaryAllowed}
         onChange={(event) => {
           if (event.currentTarget.checked) {
             live.contextChanged(gameId, commentaryAccountId, liveCommentaryAllowed);
             setAutomatic(live.enable(game.revision ?? 0));
           } else { live.disable(); setAutomatic(false); }
-        }} /> Commentary for new battles</label>
+        }} /> Commentary for new battles</label>}
+      {preference.value?.mode === 'worker' && <label><input type="checkbox" checked={preference.value.enabled}
+        disabled={preference.busy} onChange={event => { void preference.change(event.currentTarget.checked); }} />
+        Battlefield Dispatch for future campaign battles</label>}
+      {preference.value?.mode === 'worker' && <p className="geo-help">This campaign preference is saved on the server.
+        Enabling starts after the current revision; older battles are not backfilled. Admission limits still apply.
+        Use Check saved commentary on a battle to retrieve its completed dispatch.</p>}
+      {preference.busy && <p role="status">Checking saved commentary preference…</p>}
+      {(preference.error || preference.value?.mode === 'unavailable') && <p role="status">The commentary preference could not be confirmed.
+        Automatic browser requests are paused. An already admitted dispatch may finish. Check the saved preference before changing it again.</p>}
+      <button type="button" disabled={preference.busy} onClick={() => { void preference.check(); }}>Check saved preference</button>
       <p>New exchanges are narrated when commentary is available. Gameplay continues while it is prepared.
         Turning it off stops queued narration; a request already sent may finish.</p>
       {liveResults.get(0)?.error && <p role="status">Commentary is unavailable. Gameplay can continue.</p>}
@@ -98,7 +112,7 @@ export function History({ game, events, latest, more, disabled, loadMore, api, g
       {window.entries.map((entry, index) => <ChronicleEntry key={`${gameId}:${entry.revision}:${entry.action_id}`} entry={entry}
         initiallyOpen={index === 0 && window.page === 0} game={game} gameId={gameId} api={api}
         ledger={battleLedger} previous={previousGame.current} canGenerate={canGenerateCommentary}
-        automatic={liveResults.get(entry.revision)} permitted={() => permission.current()} />)}
+        automatic={liveResults.get(entry.revision)} permitted={canStartCommentary} />)}
     </ol>
     <nav className="geo-chronicle__pages" aria-label="Chronicle pages">
       {window.page > 0 && <button onClick={() => setPage(0)}>Latest moves</button>}

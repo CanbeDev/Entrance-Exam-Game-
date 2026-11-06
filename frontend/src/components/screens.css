@@ -13,6 +13,10 @@ body:has(.geo-screen-page) { margin: 0; background: #F7F4EC; }
 .geo-screen-page h3 { font-size: 26px; line-height: 1.2; margin-block: 8px 16px; }
 .geo-screen-page :where(button,input,select), .geo-auth :where(button,input) { font: inherit; border: 1px solid var(--geo-outline); border-radius: 8px; padding: 10px 12px; color: var(--geo-ink); background: var(--geo-paper); min-block-size: 48px; }
 .geo-screen-page button { cursor: pointer; margin: 0; }
+.geo-auth .geo-screen-primary + .geo-screen-link { margin-block-start: 12px; }
+.geo-auth .geo-field-error { color: var(--geo-ink); font-size: 13px; margin-block: -8px 16px; }
+.geo-service-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 18px; border: 1px solid var(--geo-outline); border-inline-start: 3px solid var(--geo-forest); border-radius: 10px; background: var(--geo-paper); margin-block: 16px; }
+.geo-service-notice p { margin: 0; font-size: 13px; }
 .geo-screen-page :where(input,select), .geo-auth input { inline-size: 100%; min-inline-size: 0; }
 .geo-screen-page input::placeholder { color: var(--geo-muted); opacity: 1; }
 .geo-screen-page label, .geo-auth label { font-size: 13px; font-weight: 600; margin-block: 0 16px; }

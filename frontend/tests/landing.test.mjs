@@ -40,10 +40,9 @@ test('atlas retains every exact bundled geographic path; decorative grid is sepa
   assert.doesNotMatch(html, /data-map-country=|data-confirmed-revision=/);
 });
 
-test('preview uses a labelled static approved screenshot rather than mounting live gameplay or fixture code', async () => {
+test('public landing excludes fixture demonstration and placeholder feature cards without mounting gameplay', async () => {
   const html = page(false);
-  assert.match(html, /Interface demonstration · Offline fixture · Not a live campaign/);
-  assert.match(html, /src="\/assets\/landing\/campaign-preview.png" width="1440" height="900" loading="lazy"/);
+  assert.doesNotMatch(html, /Offline fixture|campaign-preview\.png|geo-landing__preview|Built for commanders|geo-landing__feature-grid/);
   const source = await readFile(new URL('../src/components/Landing.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /from ['"][^'"]*(?:dev\/|controller|SoundSettings|History|GameBoard)|\b(?:fetch|setInterval|setTimeout|stepNpc|generateBattleCommentary|Math\.random)\s*\(/);
   assert.equal((html.match(/<li>/g) ?? []).length, 4);

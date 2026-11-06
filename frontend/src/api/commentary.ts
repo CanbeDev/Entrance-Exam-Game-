@@ -45,7 +45,7 @@ export class BattleCommentaryRequests {
     if (value.game_id !== gameId || value.revision !== revision) throw new ApiError('malformed');
     const previous = this.cache.get(key);
     // A GET started before generation must not replace ready output or pending work.
-    const rank = { not_generated: 0, pending: 1, ready: 2, fallback: 2 };
+    const rank = { not_generated: 0, pending: 1, fallback: 2, ready: 3 };
     if (previous && rank[previous.status] > rank[value.status]) return previous;
     const copy = structuredClone(value);
     Object.freeze(copy.facts.attacker_dice); Object.freeze(copy.facts.defender_dice); Object.freeze(copy.facts.eliminated);
@@ -58,7 +58,8 @@ export class BattleCommentaryRequests {
   get(gameId: string, revision: number, refresh = false): Promise<BattleCommentary> {
     const key = this.identity(gameId, revision);
     const cached = this.cache.get(key);
-    if (cached && (!refresh || cached.status === 'ready' || cached.status === 'fallback')) return Promise.resolve(cached);
+    if (cached && (!refresh || cached.status === 'ready'
+        || cached.status === 'fallback' && cached.reason !== 'interrupted')) return Promise.resolve(cached);
     const active = this.reading.get(key);
     if (active) return active;
     const request = this.reads.run(async () => this.remember(key, gameId, revision, await this.read(gameId, revision)))
