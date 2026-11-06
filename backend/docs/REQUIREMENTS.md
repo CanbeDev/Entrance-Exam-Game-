@@ -173,3 +173,23 @@ offline suites pass 929 backend tests (44 real cases skipped), 167 frontend test
 and 43 contracts, with no failures. No schema, dependency, environment, gameplay,
 security, rate limit, existing record or production change was made. Review and
 one separately approved new-receipt live check remain before final acceptance.
+
+Automatic Battlefield Dispatch foundation and recovery completion (local,
+6 November 2026): separate jobs repository/model, durable owner consent tied to
+campaign access and account version, receipt reconciliation, worker lease/recovery
+and shared non-expiring two-slot capacity are implemented. Public owner preference
+GET/POST reuse existing session/CSRF/Origin protections. Browser worker mode uses
+saved consent and suppresses browser-local automatic generation. Both new feature
+flags default false. The separate worker has a disabled no-I/O idle mode; no queue
+dependency enters gameplay transactions. Permanent narration claims, admission
+limits, saved results and no speculative provider retries remain authoritative.
+See COMMENTARY_JOBS_CONTRACT.md and repository-root
+output/commentary-release-preparation/REPORT.md, DATABASE_INSTALLATION.md and
+RENDER_DEPLOYMENT.md. Latest offline checks: 1056 backend tests and 414 frontend
+tests passed; 45 OpenAPI components, TypeScript/build, map/reference and sound
+checks passed. No real MongoDB test environment is explicitly available/authorized;
+database installation remains NOT YET VERIFIED. Render Background Worker requires
+a separately approved paid service. Live narration and rendered browser review
+remain unverified; browser automation hosts were unavailable/timed out. Typewriter
+reveal remains outstanding. No Atlas/provider/configuration/deployment/Git release
+operation occurred, and both new flags remain off by default.

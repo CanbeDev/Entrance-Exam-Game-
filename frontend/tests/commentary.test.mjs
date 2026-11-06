@@ -155,7 +155,8 @@ test('a hanging commentary request cannot serialize or delay authoritative human
   assert.equal(api.cachedGame(id).revision, 2);
 });
 
-test('commentary failures do not alter saved NPC identity, cap, Pause or recovery lock', async (t) => {
+for (const paused of [false, true]) {
+test(`commentary failure preserves saved NPC identity, cap and ${paused ? 'explicit Pause' : 'active confirmation intent'}`, async (t) => {
   const gameId = '000000000000000000000001';
   const mock = createMockApi({ seed: true });
   mock.games.set(gameId, { ...fixtureGame(gameId), current_turn: 1 });
@@ -170,6 +171,8 @@ test('commentary failures do not alter saved NPC identity, cap, Pause or recover
   controller.configureNpcBudget(1);
   mock.failNext('POST', `/games/${gameId}/npc-steps`, () => { throw new TypeError('Offline NPC interruption'); });
   await controller.fastForward();
+  assert.equal(controller.getSnapshot().fastForward, true);
+  if (paused) controller.pause();
   const before = controller.getSnapshot();
   assert.ok(before.pending);
   await assert.rejects(api.generateBattleCommentary(gameId, 1), { kind: 'network' });
@@ -178,8 +181,9 @@ test('commentary failures do not alter saved NPC identity, cap, Pause or recover
   assert.equal(after.pending, before.pending);
   assert.equal(after.npcAttempts, 1);
   assert.equal(after.npcAttemptBudget, 1);
-  assert.equal(after.fastForward, false);
+  assert.equal(after.fastForward, !paused);
 });
+}
 
 test('real commentary UI renders human/NPC narration, fallback/loading and spectator safety beside unchanged dice', async () => {
   const server = await createServer({ configFile: false, root: fileURLToPath(new URL('../', import.meta.url)),
@@ -195,37 +199,37 @@ test('real commentary UI renders human/NPC narration, fallback/loading and spect
       { game, entry, display: { commentary: null, error: null, requested: false, loading: false, ...display }, canGenerate, generate() {}, check() {} }));
     for (const kind of ['human', 'npc']) {
       const ready = render({ commentary: value(2, 'ready', kind) });
-      assert.match(ready, /LLM-generated narration/); assert.match(ready, /defenders held their ground/);
-      assert.doesNotMatch(ready, /Generate AI commentary/);
+      assert.match(ready, /<h4>Battle Commentary<\/h4>/); assert.doesNotMatch(ready, /AI Commentary|LLM-generated|Groq|Written by AI/i); assert.match(ready, /defenders held their ground/);
+      assert.doesNotMatch(ready, /Generate commentary/);
     }
-    assert.match(render({ loading: true }), /Loading battle commentary.*Gameplay remains available/);
-    assert.match(render({ commentary: value(2, 'fallback') }), /Deterministic battle summary.*AI narration is unavailable/s);
+    assert.match(render({ loading: true }), /Loading commentary.*Gameplay remains available/);
+    assert.match(render({ commentary: value(2, 'fallback') }), /Saved battle summary/s);
     assert.match(render({ commentary: value(2, 'pending') }), /Check saved commentary/);
-    assert.match(render({ commentary: value(2, 'not_generated') }, true), /Generate AI commentary/);
-    assert.doesNotMatch(render({ commentary: value(2, 'not_generated') }), /Generate AI commentary/);
+    assert.match(render({ commentary: value(2, 'not_generated') }, true), /Generate commentary/);
+    assert.doesNotMatch(render({ commentary: value(2, 'not_generated') }), /Generate commentary/);
     assert.match(render({ commentary: value(2, 'not_generated') }), /Check saved commentary/);
     const escaped = render({ commentary: { ...value(), text: '<script>alert(1)</script>' } });
     assert.match(escaped, /&lt;script&gt;/);
     assert.doesNotMatch(escaped, /<script>/);
     const chronicle = "South Africa's assault met France's stubborn resistance. The contest remained balanced, leaving both sides searching for an advantage in a tense, unresolved exchange.";
     const narration = render({ commentary: { ...value(), text: chronicle } });
-    assert.match(narration, /LLM-generated narration/);
+    assert.match(narration, /<h4>Battle Commentary<\/h4>/);
     assert.match(narration, /stubborn resistance/);
     assert.match(narration, /tense, unresolved exchange/);
     const failed = render({ error: 'Saved commentary is unavailable.' });
-    assert.match(failed, /South Africa attacked France/); assert.match(failed, /Attacker dice: 6, 2; defender dice: 5, 3/);
+    assert.match(failed, /Commentary could not be confirmed/); assert.doesNotMatch(failed, /South Africa attacked France/);
     const history = renderToStaticMarkup(createElement(History, { game, events: [entry], latest: null, more: false,
       disabled: false, loadMore() {}, api: {}, gameId: id, canGenerateCommentary: false,
       commentaryAccountId: null, liveCommentaryAllowed: false, canStartCommentary: () => false }));
     assert.match(history, /Attacker dice: 6, 2. Defender dice: 5, 3/);
-    assert.match(history, /Attacker losses: 1. Defender losses: 1/);
-    assert.match(history, /AI Battle Commentary for move 2/);
-    assert.doesNotMatch(history, /Generate AI commentary/);
-    assert.doesNotMatch(history, /AI commentary for new battles/);
+    assert.match(history, /Attacker losses: 1/); assert.match(history, /Defender losses: 1/);
+    assert.match(history, /Commentary for move 2/);
+    assert.doesNotMatch(history, /Generate commentary/);
+    assert.doesNotMatch(history, /Commentary for new battles/);
     const owner = renderToStaticMarkup(createElement(History, { game, events: [entry], latest: null, more: false,
       disabled: false, loadMore() {}, api: {}, gameId: id, canGenerateCommentary: true,
       commentaryAccountId: 'fixture-owner', liveCommentaryAllowed: true, canStartCommentary: () => true }));
-    assert.match(owner, /AI commentary for new battles/);
+    assert.match(owner, /Commentary for new battles/);
     assert.match(owner, /checked=""/);
   } finally { await server.close(); }
 });

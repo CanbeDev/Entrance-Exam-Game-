@@ -1,0 +1,39 @@
+.geo-battle { min-inline-size: 0; margin-block: var(--geo-space-base); padding: var(--geo-space-base); background: var(--geo-parchment); border: 1px solid var(--geo-line); border-radius: var(--geo-radius-inset); }
+.geo-battle__layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--geo-space-sm); align-items: start; }
+.geo-battle__side--attacker { grid-column: 1; grid-row: 1; }
+.geo-battle__side--defender { grid-column: 2; grid-row: 1; }
+.geo-battle__centre { grid-column: 1 / -1; grid-row: 2; min-inline-size: 0; }
+.geo-battle__heading { display: block; border-block-end: 1px solid var(--geo-line); padding-block-end: 8px; }
+.geo-battle__heading p { font-size: 13px; margin: 0; }
+.geo-battle :where(h3,h4) { margin-block: 0 var(--geo-space-sm); font-family: var(--geo-font-heading); overflow-wrap: anywhere; }
+.geo-battle__side { min-inline-size: 0; color: var(--geo-forest); overflow-wrap: anywhere; }
+.geo-battle__side--defender { color: var(--geo-alert); }
+.geo-battle__side p { color: var(--geo-ink); font-size: 13px; line-height: 19px; margin-block: 4px; }
+.geo-battle__soldiers { display: block; font-size: clamp(32px,3.2vw,48px); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.geo-battle__loss { font-weight: 700; }
+.geo-battle__scroll { max-block-size: 460px; overflow-y: auto; min-inline-size: 0; }
+.geo-game-history .geo-battle__pairs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px 12px; list-style: none; padding: 0; margin: 0; }
+.geo-battle__pairs li { display: grid; grid-template-columns: 42px 120px minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px; margin-block-end: 4px; background: var(--geo-paper); border-block-end: 1px solid var(--geo-line); }
+.geo-battle__pair-label, .geo-battle__pair-result { font-size: 13px; line-height: 18px; }
+.geo-battle__pair-result { font-weight: 600; overflow-wrap: anywhere; }
+.geo-battle__pairs [data-outcome="defender-loss"] .geo-battle__pair-result { color: var(--geo-forest); }
+.geo-battle__pairs [data-outcome="attacker-loss"] .geo-battle__pair-result { color: var(--geo-alert); }
+.geo-battle__pairs [data-outcome="tie"] .geo-battle__pair-result { color: var(--geo-body-muted); }
+.geo-battle__dice { display: flex; align-items: center; gap: 6px; }
+.geo-die { position: relative; display: inline-grid; inline-size: 44px; block-size: 44px; flex: none; border: 2px solid var(--geo-forest); border-radius: 8px; background: var(--geo-paper); color: var(--geo-ink); box-shadow: 0 2px 0 var(--geo-line); }
+.geo-die--defender { border-color: var(--geo-alert); }
+.geo-die__pips { display: grid; grid-template: repeat(3,1fr) / repeat(3,1fr); padding: 6px; gap: 3px; }
+.geo-die__pips i[data-pip="true"] { border-radius: 50%; background: var(--geo-ink); }
+.geo-die__rolling { display: none; position: absolute; inset: 0; place-items: center; font-size: 22px; }
+.geo-battle__pairs[data-rolling="true"] .geo-die { animation: geo-die-roll 650ms ease-out 1; }
+.geo-battle__pairs[data-rolling="true"] .geo-die__pips { visibility: hidden; }
+.geo-battle__pairs[data-rolling="true"] .geo-die__rolling { display: grid; }
+.geo-battle__summary { display: flex; flex-wrap: wrap; gap: 4px 12px; padding-block: var(--geo-space-sm); margin-block-end: var(--geo-space-sm); border-block-end: 1px solid var(--geo-line); font-size: 13px; font-weight: 600; }
+.geo-battle__centre > p, .geo-battle--active > p { margin-block: 4px 8px; font-size: 13px; }
+.geo-battle details summary, .geo-battle button { min-block-size: 44px; }
+.geo-commentary { padding: var(--geo-space-base); margin-block: var(--geo-space-base); border: 1px solid var(--geo-line); border-inline-start: 3px solid var(--geo-forest); border-radius: var(--geo-radius-control); background: var(--geo-paper); }
+.geo-commentary h5 { margin-block: 0 var(--geo-space-sm); font: 600 20px/26px var(--geo-font-heading); }
+.geo-commentary__prose { font: 400 16px/25px var(--geo-font-heading); overflow-wrap: anywhere; }
+@keyframes geo-die-roll { 0% { transform: translate(-2px,-2px) rotate(-9deg); } 20% { transform: translate(2px,1px) rotate(10deg); } 45% { transform: translate(-2px,-1px) rotate(-7deg); } 70% { transform: translate(1px,-2px) rotate(4deg); } 88% { transform: translateY(1px) rotate(-2deg); } 100% { transform: none; } }
+@media (max-width: 700px) { .geo-battle__layout { grid-template-columns: repeat(2,minmax(0,1fr)); } .geo-battle__side h4 { overflow-wrap: anywhere; } .geo-battle__pairs li { grid-template-columns: 38px 120px minmax(0,1fr); gap: 8px; } .geo-game-history .geo-battle__pairs { grid-template-columns: minmax(0,1fr); } }
+@media (prefers-reduced-motion: reduce) { .geo-battle *, .geo-battle__pairs[data-rolling="true"] .geo-die { animation: none !important; transition: none !important; transform: none !important; } .geo-battle__pairs[data-rolling="true"] .geo-die__pips { visibility: visible; } .geo-battle__pairs[data-rolling="true"] .geo-die__rolling { display: none; } }

@@ -6,6 +6,7 @@ import { activeParticipant, playable } from './view.ts';
 type PendingOperation = { kind: 'create'; operation: CreationOperation } | { kind: 'human'; operation: HumanOperation }
   | { kind: 'npc'; operation: NpcOperation; observation: NpcObservation };
 type Pending = PendingOperation & { readonly account: Session['user'] };
+type NpcRecovery = { pending: Pending & { kind: 'npc' }; remaining: number; error: ApiError };
 export interface AppState {
   ready: boolean; busy: boolean; session: Session | null; error: string | null; notice: string | null;
   refreshing: boolean; refreshError: string | null;
@@ -52,9 +53,11 @@ export class GameController {
   private listeners = new Set<() => void>();
   private timer: ReturnType<typeof setTimeout> | undefined;
   private forwardGeneration = 0;
+  private forwardIntent: { generation: number; session: Session; gameId: string; schedule: () => void } | null = null;
   private stopped = false;
   private readGeneration = 0;
   private backgroundTask: Promise<void> | null = null;
+  private npcConfirmation: NpcRecovery | null = null;
   private ownerContext: { session: Session; gameId: string } | null = null;
   private state: AppState = {
     ready: false, busy: false, session: null, error: null, notice: null, catalog: null, games: null,
@@ -117,7 +120,8 @@ export class GameController {
   private async run(work: () => Promise<void>, { retry = false, waitForRefresh = true }: {
     retry?: boolean; waitForRefresh?: boolean;
   } = {}): Promise<void> {
-    if (this.state.busy || Date.now() < this.state.retryAt || this.stopped || this.state.pending && !retry) return;
+    if (this.state.busy || this.state.confirmingPending || Date.now() < this.state.retryAt
+        || this.stopped || this.state.pending && !retry) return;
     // Foreground intent supersedes background results, but mutations need not wait
     // for a slow public read. Auth/read workflows drain it to avoid overlapping
     // refreshes or a late read clearing a newly established API session.
@@ -238,7 +242,7 @@ export class GameController {
     if (this.stopped) return;
     await this.checkOwner(id);
   }
-  openGame(id: string): Promise<void> { return this.run(() => this.loadGame(id)); }
+  openGame(id: string): Promise<void> { this.pause(); return this.run(() => this.loadGame(id)); }
   private async loadEvents(): Promise<void> {
     if (!this.state.gameId) return;
     const page = await this.api.events(this.state.gameId, { after_revision: this.state.eventCursor, limit: 100 });
@@ -246,6 +250,7 @@ export class GameController {
   }
   moreHistory(): Promise<void> { return this.run(() => this.loadEvents()); }
   refresh(): Promise<void> {
+    this.pause();
     return this.run(async () => {
       if (this.state.gameId) {
         this.applyGame(await this.api.getGame(this.state.gameId));
@@ -258,8 +263,19 @@ export class GameController {
   }
   poll(): Promise<void> {
     if (this.stopped || !this.state.ready || !this.state.gameId || !this.state.game || this.state.busy
-        || this.backgroundTask || this.state.refreshing || this.state.error || this.state.refreshError
-        || this.state.fastForward || this.state.pending || Date.now() < this.state.retryAt) return Promise.resolve();
+        || this.backgroundTask || this.state.refreshing || this.state.confirmingPending
+        || Date.now() < this.state.retryAt) return Promise.resolve();
+    if (this.state.pending) {
+      const recovery = this.npcConfirmation;
+      if (recovery?.pending !== this.state.pending || recovery.remaining <= 0) return Promise.resolve();
+      // Reuse the existing poll cadence, only for a submitted uncertain NPC.
+      // A late commit may miss the immediate lookup. Never replay a POST here.
+      recovery.remaining--;
+      this.set({ refreshing: true });
+      this.backgroundTask = this.confirmNpcInBackground(recovery);
+      return this.backgroundTask;
+    }
+    if (this.state.fastForward || this.state.error || this.state.refreshError) return Promise.resolve();
     const id = this.state.gameId;
     const generation = this.readGeneration;
     const session = this.api.currentSession;
@@ -267,6 +283,30 @@ export class GameController {
     this.set({ refreshing: true });
     this.backgroundTask = this.refreshBackground(generation, id, session, cursor);
     return this.backgroundTask;
+  }
+  private forwarding(): boolean {
+    const intent = this.forwardIntent;
+    return !!intent && !this.stopped && this.state.fastForward && intent.generation === this.forwardGeneration
+      && intent.session === this.api.currentSession && intent.gameId === this.state.gameId && this.ownsCurrentGame();
+  }
+  private canWaitForNpc(recovery: NpcRecovery, issue?: unknown): boolean {
+    return this.forwarding() && this.state.pending === recovery.pending && recovery.remaining > 0
+      && Date.now() >= this.state.retryAt && (!issue || issue instanceof ApiError
+        && ['network', 'timeout', 'unavailable'].includes(issue.kind)
+        && !['authentication_disabled', 'gameplay_writes_disabled', 'phase4_disabled'].includes(issue.code));
+  }
+  private async confirmNpcInBackground(recovery: NpcRecovery): Promise<void> {
+    let confirmed = false, issue: unknown;
+    try { confirmed = await this.confirmNpc(recovery.pending, this.forwarding()); }
+    catch (error) { issue = error; }
+    finally {
+      this.backgroundTask = null;
+      this.syncSession();
+      this.set({ refreshing: false });
+    }
+    if (this.state.fastForward && !this.forwarding()) this.pause();
+    if (confirmed && this.forwarding()) this.forwardIntent!.schedule();
+    else if (this.forwarding() && !this.canWaitForNpc(recovery, issue)) this.fail(recovery.error, true);
   }
   private async refreshBackground(generation: number, id: string, session: Session | null, cursor: number): Promise<void> {
     try {
@@ -327,6 +367,7 @@ export class GameController {
   private savePending(operation: PendingOperation): void {
     const account = this.api.currentSession?.user;
     if (!account) throw new ApiError('unauthenticated', { status: 401 });
+    this.npcConfirmation = null;
     this.set({ pending: Object.freeze({ ...operation, account }) });
   }
   private pendingAccount(pending: Pending): void {
@@ -381,13 +422,19 @@ export class GameController {
       } catch (error) {
         if (pending.kind === 'npc' && error instanceof ApiError && error.uncertain
             && !['authentication_disabled', 'gameplay_writes_disabled', 'phase4_disabled'].includes(error.code)) {
-          this.pause();
+          let confirmationError: unknown;
           try {
-            const issue = error.code === 'committed_state_unavailable'
-              ? `committed receipt; follow-up state read ${error.kind}${requestDetail(error)}`
-              : `${error.kind}${requestDetail(error)}`;
-            if (await this.confirmNpc(pending, issue)) return;
-          } catch { /* Keep the original POST failure as well as the read-check notice. */ }
+            // This read allowance belongs to the original pending identity;
+            // retries/preparation failures must not replenish it.
+            if (this.npcConfirmation?.pending !== pending) {
+              this.npcConfirmation = { pending, remaining: 3, error };
+            }
+            if (await this.confirmNpc(pending, this.forwarding())) return;
+          } catch (cause) { confirmationError = cause; }
+          if (this.npcConfirmation && this.canWaitForNpc(this.npcConfirmation, confirmationError)) {
+            this.set({ error: null, notice: 'Waiting for the submitted NPC move to be confirmed. You can pause fast-forward.' });
+            return;
+          }
         }
         throw error;
       }
@@ -396,11 +443,13 @@ export class GameController {
       await this.loadEvents();
     }
   }
-  private async confirmNpc(pending: Pending & { kind: 'npc' }, originalFailure?: string): Promise<boolean> {
+  private async confirmNpc(pending: Pending & { kind: 'npc' }, preserveForward = false): Promise<boolean> {
     const current = () => !this.stopped && this.state.pending === pending && this.state.gameId === pending.operation.gameId;
     if (!current()) return false;
-    this.pause();
-    this.set({ confirmingPending: true, notice: 'Checking the saved NPC outcome using public history. Fast-forward is paused.' });
+    const continuing = () => preserveForward && this.forwarding();
+    if (!continuing()) this.pause();
+    this.set({ confirmingPending: true, notice: continuing() ? 'Confirming the submitted NPC move. You can pause fast-forward.'
+      : 'Checking the saved NPC outcome using public history. Fast-forward is paused.' });
     try {
       const page = await this.api.findNpcReceipt(pending.operation, pending.observation);
       if (!current()) return false;
@@ -414,25 +463,30 @@ export class GameController {
           this.applyGame(game);
           this.applyEvents(page);
           this.set({ pending: null, lastResult: null, error: null,
-            notice: `NPC move ${page.events[0].revision} was confirmed committed using public history. Fast-forward remains paused.${originalFailure ? ` Original response: ${originalFailure}.` : ''}` });
+            notice: continuing() ? `NPC move ${page.events[0].revision} confirmed.`
+              : `NPC move ${page.events[0].revision} confirmed. Fast-forward is paused.` });
           return true;
         }
       }
-      this.set({ notice: 'Read-only checks did not confirm the saved NPC operation. The original request remains unresolved; fast-forward is paused.' });
+      this.set({ notice: continuing() ? 'Waiting for the submitted NPC move to be confirmed. You can pause fast-forward.'
+        : 'Read-only checks did not confirm the saved NPC operation. The original request remains unresolved; fast-forward is paused.' });
       return false;
     } catch (error) {
-      if (current()) this.set({ notice: `Read-only confirmation failed: ${errorMessage(error)} The original request remains saved; fast-forward is paused.`,
+      if (current()) this.set({ notice: continuing() ? 'The connection is slow. Checking the submitted NPC move before continuing.'
+        : `Read-only confirmation failed: ${errorMessage(error)} The original request remains saved; fast-forward is paused.`,
         ...(error instanceof ApiError && error.status === 429 ? { retryAt: Date.now() + (error.retryAfterMs ?? 60_000) } : {}) });
       throw error;
     } finally { this.set({ confirmingPending: false }); }
   }
   checkPendingNpc(): Promise<void> {
+    this.pause();
     return this.run(async () => {
       const pending = this.state.pending;
       if (pending?.kind === 'npc') await this.confirmNpc(pending);
     }, { retry: true });
   }
   retryPending(): Promise<void> {
+    this.pause();
     return this.run(async () => {
       const pending = this.state.pending;
       if (!pending) return;
@@ -447,21 +501,35 @@ export class GameController {
       await this.submitPending();
     }, { retry: true, waitForRefresh: false });
   }
-  pause(): void { this.forwardGeneration++; clearTimeout(this.timer); this.timer = undefined; this.set({ fastForward: false }); }
+  pause(): void {
+    this.forwardGeneration++; this.forwardIntent = null;
+    clearTimeout(this.timer); this.timer = undefined; this.set({ fastForward: false });
+  }
   async fastForward(): Promise<void> {
-    if (this.stopped || this.state.fastForward || !this.controls('npc') || this.state.busy || this.state.pending) return;
+    if (this.stopped || this.state.fastForward || !this.controls('npc') || this.state.busy
+        || this.state.confirmingPending || this.state.pending) return;
     const generation = ++this.forwardGeneration;
-    this.set({ fastForward: true });
-    const next = async (): Promise<void> => {
-      if (generation !== this.forwardGeneration) return;
-      if (!this.state.fastForward || !this.controls('npc')) { this.pause(); return; }
-      await this.stepNpc();
-      if (generation !== this.forwardGeneration) return;
-      if (!this.state.fastForward || this.state.error || !this.controls('npc')) { this.pause(); return; }
+    const intent = { generation, session: this.api.currentSession!, gameId: this.state.gameId!, schedule: () => {
+      if (!this.forwarding() || this.forwardIntent !== intent) return;
+      if (this.state.error || !this.controls('npc')) { this.pause(); return; }
       if (this.state.npcAttemptBudget !== null && this.state.npcAttempts >= this.state.npcAttemptBudget) {
         this.pause(); this.set({ notice: 'NPC acceptance limit reached. Fast-forward is paused.' }); return;
       }
+      clearTimeout(this.timer);
       this.timer = setTimeout(() => { void next(); }, 650);
+    } };
+    this.forwardIntent = intent;
+    this.set({ fastForward: true });
+    const next = async (): Promise<void> => {
+      if (generation !== this.forwardGeneration) return;
+      this.timer = undefined;
+      if (!this.forwarding() || !this.controls('npc')) { this.pause(); return; }
+      if (this.state.pending || this.state.busy || this.state.confirmingPending) return;
+      await this.stepNpc();
+      if (generation !== this.forwardGeneration) return;
+      if (!this.forwarding() || this.state.error || !this.controls('npc')) { this.pause(); return; }
+      if (this.state.pending) return; // The same intent waits for exact public confirmation.
+      intent.schedule();
     };
     await next();
   }

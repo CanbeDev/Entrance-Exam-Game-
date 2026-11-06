@@ -1,0 +1,36 @@
+.geo-atlas-host { min-inline-size: 0; inline-size: 100%; }
+.geo-atlas__scroll { overflow-x: auto; border: 1px solid var(--geo-border); border-radius: var(--geo-radius-atlas); background: var(--geo-ocean); }
+.geo-atlas__canvas { position: relative; }
+.geo-atlas__svg { display: block; inline-size: 100%; block-size: 100%; }
+.geo-atlas__svg path { stroke: var(--geo-border); stroke-width: .5; stroke-linejoin: round; }
+.geo-atlas__country { cursor: pointer; }
+.geo-atlas__country:hover { stroke: var(--geo-forest); stroke-width: 1.5; }
+.geo-atlas__leader { stroke: var(--geo-body-muted); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.geo-atlas__anchor { fill: var(--geo-ink); pointer-events: none; }
+.geo-atlas__battle { stroke: var(--geo-copper); stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.geo-atlas__relationship { color: var(--geo-copper); font-weight: 600; }
+.geo-atlas__token { position: absolute; display: grid; grid-template-rows: 44px minmax(0, 1fr) 16px; justify-items: center; align-items: center; gap: 4px; padding: 2px; border: 0; border-radius: var(--geo-radius-control); background: transparent; color: var(--geo-ink); cursor: pointer; }
+.geo-atlas__token[aria-pressed="true"] .geo-atlas__number { outline: 3px solid var(--geo-forest); outline-offset: 2px; }
+.geo-ui .geo-atlas__token:focus-visible { outline: none; }
+.geo-ui .geo-atlas__token:focus-visible .geo-atlas__number { outline: 3px solid var(--geo-ink); outline-offset: 2px; }
+.geo-atlas__number { display: grid; place-items: center; min-inline-size: 44px; block-size: 44px; padding-inline: 4px; border: 4px solid var(--geo-faction); border-radius: 50%; background: var(--geo-paper); font-size: var(--geo-numeral-size); font-weight: 700; }
+.geo-atlas__number[data-compact="true"] { font-size: var(--geo-body-sm-size); }
+.geo-atlas__token[data-human="true"] .geo-atlas__number { background: var(--geo-forest); color: var(--geo-paper); border-color: var(--geo-paper); border-style: double; }
+.geo-atlas__token[data-state="target"] .geo-atlas__number { border-style: dashed; }
+.geo-atlas__token[data-state="from"] .geo-atlas__number { border-style: double; }
+.geo-atlas__token[data-state="playing"] .geo-atlas__number { font-weight: 800; }
+.geo-atlas__name { max-inline-size: 100%; overflow: hidden; overflow-wrap: anywhere; font-size: var(--geo-body-sm-size); line-height: var(--geo-body-sm-line); font-weight: 600; background: var(--geo-paper); border-radius: 4px; padding-inline: 4px; max-block-size: 36px; }
+.geo-atlas__cue { font-size: var(--geo-label-size); line-height: var(--geo-label-line); letter-spacing: var(--geo-label-tracking); font-weight: 600; color: var(--geo-ink); }
+.geo-atlas__roster { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--geo-space-sm); }
+.geo-atlas__roster .geo-token { inline-size: 100%; }
+.geo-atlas__roster [data-selected="true"] .geo-token { border: 2px solid var(--geo-forest); background: var(--geo-paper); background: color-mix(in srgb, var(--geo-paper) 96%, var(--geo-forest) 4%); }
+.geo-atlas-preview { max-inline-size: 1440px; margin: var(--geo-space-xl) auto 0; }
+.geo-atlas-preview__options { display: flex; flex-wrap: wrap; align-items: center; gap: var(--geo-space-md); margin-block-end: var(--geo-space-base); }
+@media (prefers-reduced-motion: reduce) { .geo-atlas * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.geo-atlas__svg path[data-captured="true"] { animation: geo-country-captured 650ms ease-out 1; }
+.geo-atlas__battle { animation: geo-attack-line 180ms ease-out 1; }
+.geo-atlas__token[aria-pressed="true"] .geo-atlas__number { animation: geo-selected-country 180ms ease-out 1; }
+@keyframes geo-country-captured { from { stroke: var(--geo-forest); stroke-width: 2; fill-opacity: .7; } to { stroke: var(--geo-border); stroke-width: .5; } }
+@keyframes geo-attack-line { from { opacity: .4; stroke-dashoffset: 8; } to { opacity: 1; stroke-dashoffset: 0; } }
+@keyframes geo-selected-country { from { outline-offset: 5px; } to { outline-offset: 2px; } }
+@media (prefers-reduced-motion: reduce) { .geo-atlas *, .geo-atlas__svg path[data-captured="true"] { animation: none !important; transition: none !important; } }

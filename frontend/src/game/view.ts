@@ -11,5 +11,5 @@ export function participantName(game: PublicGame, id: string | null | undefined)
   const player = game.players?.find((item) => item.id === id);
   if (!player) return id ?? 'Unknown';
   const country = game.countries?.find((item) => item.id === player.starting_country_id);
-  return `${player.kind === 'human' ? 'Human' : 'NPC'} — ${country?.name ?? player.starting_country_id}`;
+  return `${player.kind === 'human' ? 'Human' : 'Rival'} — ${country?.name ?? player.starting_country_id}`;
 }

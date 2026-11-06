@@ -1,0 +1,67 @@
+/* Stage 4 shell only. Controller/actions/history behavior stays in existing components. */
+body:has(.geo-game-page) { margin: 0; background: #F7F4EC; }
+main.geo-game-page { max-inline-size: 1600px; padding: var(--geo-space-base); min-inline-size: 0; }
+.geo-game-page > header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--geo-space-md) var(--geo-space-lg); background: var(--geo-parchment); border-block-end: 1px solid var(--geo-line); padding: var(--geo-space-base); margin: calc(-1 * var(--geo-space-base)) calc(-1 * var(--geo-space-base)) var(--geo-space-base); }
+.geo-game-page > header h1 { margin: 0; color: var(--geo-deep-forest); font: 500 28px/34px var(--geo-font-heading); }
+.geo-game-page > header p { margin: 0; }
+.geo-game-context { flex: 1 1 240px; }
+.geo-watch-link { flex-basis: 100%; font-size: var(--geo-body-sm-size); }
+.geo-game-page a { color: var(--geo-forest); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.geo-game-page a:focus-visible, .geo-game-page select:focus-visible, .geo-game-page summary:focus-visible { outline: 3px solid var(--geo-ink); outline-offset: 2px; }
+.geo-game-page nav a { display: inline-flex; align-items: center; min-block-size: 44px; }
+.geo-game-page button, .geo-game-page input:not([type="checkbox"]):not([type="radio"]), .geo-game-page select, .geo-game-page summary { min-block-size: 44px; }
+.geo-game-page button { background: var(--geo-paper); color: var(--geo-ink); border: 1px solid var(--geo-outline); border-radius: var(--geo-radius-control); padding: 10px 12px; cursor: pointer; overflow-wrap: anywhere; }
+.geo-game-page button:hover:not(:disabled) { background: var(--geo-sand); border-color: var(--geo-ink); }
+.geo-game-page button:disabled { color: var(--geo-muted); background: var(--geo-sand); border-color: var(--geo-line); cursor: not-allowed; }
+.geo-game-page input, .geo-game-page select { color: var(--geo-ink); background: var(--geo-paper); border: 1px solid var(--geo-outline); border-radius: var(--geo-radius-control); padding: 8px; }
+.geo-game-page fieldset { min-inline-size: 0; border: 1px solid var(--geo-line); border-radius: var(--geo-radius-inset); padding: var(--geo-space-md); }
+.geo-game-page legend { font-weight: 600; overflow-wrap: anywhere; }
+.geo-game-page [role="alert"] { background: var(--geo-alert-ground); color: var(--geo-alert); border-color: var(--geo-alert); padding: var(--geo-space-md); }
+.geo-turn-strip { margin: 0 0 var(--geo-space-base); padding: var(--geo-space-md); border: 1px solid var(--geo-line); border-radius: var(--geo-radius-inset); background: var(--geo-sand); }
+.geo-turn-strip h2 { margin-block: 0 var(--geo-space-sm); }
+.geo-turn-strip ol { display: flex; flex-wrap: wrap; gap: var(--geo-space-sm); padding: 0; margin: 0; list-style: none; }
+.geo-turn-strip li { min-inline-size: 0; max-inline-size: 100%; }
+.geo-game-grid { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(260px, 320px); grid-template-areas: 'roster map actions' 'roster history actions'; gap: var(--geo-space-lg); align-items: start; }
+.geo-game-grid > * { min-inline-size: 0; margin: 0; }
+.geo-game-roster { grid-area: roster; }
+.geo-game-map { grid-area: map; }
+.geo-game-actions { grid-area: actions; }
+.geo-game-history { grid-area: history; }
+.geo-game-roster .geo-atlas__roster { grid-template-columns: minmax(0, 1fr); }
+.geo-game-page .geo-atlas__token { border: 0; padding: 2px; background: transparent; margin: 0; }
+.geo-game-page .geo-atlas__token:hover { background: transparent; }
+.geo-game-page .geo-token { display: flex; margin: 0; text-align: start; padding: var(--geo-space-sm); }
+.geo-game-roster .geo-token__count { max-inline-size: 100%; font-size: var(--geo-body-sm-size); overflow-wrap: anywhere; }
+.geo-game-facts { display: flex; flex-wrap: wrap; gap: var(--geo-space-sm) var(--geo-space-lg); margin-block: 0 var(--geo-space-base); font-size: var(--geo-body-sm-size); }
+.geo-game-facts > div { min-inline-size: 0; }
+.geo-game-facts dd { margin: 0; overflow-wrap: anywhere; }
+.geo-game-map h3 { margin-block: 0 var(--geo-space-md); overflow-wrap: anywhere; }
+.geo-game-history :where(h2, h3, h4), .geo-game-actions h2 { color: var(--geo-deep-forest); font-family: var(--geo-font-heading); }
+.geo-game-history h5 { font-size: var(--geo-body-sm-size); line-height: var(--geo-body-sm-line); }
+.geo-game-history label { display: flex; align-items: center; gap: var(--geo-space-sm); min-block-size: 44px; }
+.geo-game-history input[type="checkbox"] { inline-size: 20px; block-size: 20px; padding: 0; flex: none; }
+.geo-game-history :where(ol, ul) { padding-inline-start: var(--geo-space-lg); }
+.geo-game-history :where(li, p), .geo-game-actions p { overflow-wrap: anywhere; }
+.geo-game-actions section:first-child, .geo-game-history > section:first-child { margin-block-start: 0; }
+.geo-game-actions input, .geo-game-actions select { inline-size: 100%; }
+.geo-game-actions button[type="submit"] { min-block-size: var(--geo-primary-height); }
+.geo-game-actions button[type="submit"]:not(:disabled) { background: var(--geo-forest); color: var(--geo-paper); border-color: var(--geo-forest); }
+.geo-game-actions button[type="submit"]:hover:not(:disabled) { background: var(--geo-forest-hover); }
+.geo-game-roster table { table-layout: fixed; font-size: var(--geo-body-sm-size); }
+.geo-game-roster :where(th, td) { overflow-wrap: anywhere; border-color: var(--geo-line); }
+@media (max-width: 1100px) {
+  .geo-game-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'map' 'actions' 'roster' 'history'; }
+  .geo-game-roster .geo-atlas__roster { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  main.geo-game-page { padding: var(--geo-space-md); }
+  .geo-game-page > header { margin: -12px -12px 16px; }
+  .geo-game-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'map' 'actions' 'roster' 'history'; gap: var(--geo-space-base); }
+  .geo-game-roster .geo-atlas__roster { grid-template-columns: minmax(0, 1fr); }
+  .geo-game-page > header > * { min-inline-size: 0; max-inline-size: 100%; }
+  .geo-game-roster .geo-token { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .geo-game-page * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+.geo-turn[aria-current="step"] { outline: 2px solid var(--geo-forest); outline-offset: 2px; animation: geo-turn-arrive 160ms ease-out 1; }
+@keyframes geo-turn-arrive { from { opacity: .65; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .geo-turn[aria-current="step"] { animation: none !important; } }

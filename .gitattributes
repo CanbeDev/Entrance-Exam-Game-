@@ -1,0 +1,7 @@
+# Preserve pinned assets and deterministic generated text across checkouts.
+.gitattributes text eol=lf
+frontend/public/assets/world-map.svg text eol=lf
+frontend/public/assets/flags/*.svg text eol=lf
+frontend/src/map/mapData.generated.json text eol=lf
+frontend/src/country/reference.generated.json text eol=lf
+frontend/src/api/generated.ts text eol=lf

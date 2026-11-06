@@ -36,10 +36,11 @@ def factual_summary(facts: BattleFacts) -> str:
 
 
 class CommentaryService:
-    def __init__(self, games, repository, narrator, *, clock=None, max_concurrent=2):
+    def __init__(self, games, repository, narrator, *, clock=None, max_concurrent=2, capacity=None):
         self.games, self.repository, self.narrator = games, repository, narrator
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.slots = threading.BoundedSemaphore(max_concurrent)
+        self.capacity = capacity
 
     def _battle(self, game_id, revision):
         try:
@@ -110,15 +111,33 @@ class CommentaryService:
                 raise SecurityError(429, "commentary_rate_limited", retry_after=seconds - int(now.timestamp()) % seconds)
 
     async def generate(self, principal, game_id, revision):
-        principal = await run_in_threadpool(self._authorize, principal, game_id)
+        return await self._generate(game_id, revision, lambda: self._authorize(principal, game_id))
+
+    async def generate_internal(self, policies, game_id, revision, action_id, *, before_dispatch):
+        """Trusted server-only adapter. No Principal/session fabrication or route."""
+        if self.capacity is None:
+            raise SecurityError(503, "commentary_shared_capacity_required")
+        context = await run_in_threadpool(policies.authorize, game_id, revision, action_id)
+        return await self._generate(game_id, revision, lambda: policies.recheck(context),
+            expected_action_id=action_id, before_dispatch=before_dispatch)
+
+    async def _generate(self, game_id, revision, authorize, *, expected_action_id=None, before_dispatch=None):
+        principal = await run_in_threadpool(authorize)
         base = await run_in_threadpool(self._battle, game_id, revision)
+        if expected_action_id is not None and base.action_id != expected_action_id:
+            raise SecurityError(503, "commentary_evidence_mismatch")
         existing = await run_in_threadpool(self.repository.get, base.game_id, revision)
         if existing is not None:
             return self._stored(base, existing)
-        if not self.slots.acquire(blocking=False):
+        slot = await run_in_threadpool(self.capacity.try_acquire) if self.capacity else None
+        acquired = slot is not None if self.capacity else self.slots.acquire(blocking=False)
+        if not acquired:
             raise SecurityError(429, "commentary_capacity_limited", retry_after=2)
+        provider_uncertain = False
         try:
-            await run_in_threadpool(self._authorize, principal, base.game_id)
+            await run_in_threadpool(authorize)
+            if before_dispatch is not None:
+                await run_in_threadpool(before_dispatch)
             token = secrets.token_urlsafe(24)
             pending = base.model_copy(update={"status": "pending", "reason": "in_progress"})
             claimed = await run_in_threadpool(self.repository.claim, base.game_id, revision,
@@ -146,11 +165,20 @@ class CommentaryService:
                 for name in ("attacker_dice", "defender_dice"):
                     context[name + "_count"] = len(context[name])
                     context[name] = context[name][:12]
+                if before_dispatch is not None:
+                    await run_in_threadpool(authorize)
+                    await run_in_threadpool(before_dispatch)
+                provider_uncertain = True
                 lead = await asyncio.wait_for(self.narrator.generate(context), timeout=8.5)
+                provider_uncertain = False
                 # Keep narrative and exact results separate. Facts/dice remain
                 # unchanged in their authoritative fields and existing UI.
                 result = base.model_copy(update={"status": "ready", "source": "groq", "text": lead})
             except NarrationUnavailable as error:
+                # Only these classified responses prove no remote call remains
+                # uncertain. Other outcomes conservatively quarantine capacity.
+                if error.reason in {"not_configured", "invalid_output", "provider_rate_limited"}:
+                    provider_uncertain = False
                 result = base.model_copy(update={"status": "fallback", "reason": error.reason})
             except SecurityError:
                 # Storage/counter uncertainty keeps the durable claim closed.
@@ -163,4 +191,7 @@ class CommentaryService:
             await run_in_threadpool(self.repository.finish, base.game_id, revision, result.model_dump(mode="json"), token)
             return result
         finally:
-            self.slots.release()
+            if self.capacity:
+                await asyncio.shield(run_in_threadpool(self.capacity.release, slot, not provider_uncertain))
+            else:
+                self.slots.release()

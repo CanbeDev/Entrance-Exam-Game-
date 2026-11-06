@@ -66,6 +66,8 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
         index_readiness = None
         app.state.phase4 = None
         app.state.commentary = None
+        app.state.commentary_mode = "unavailable"
+        app.state.commentary_policies = None
         app.state.mongo_client = None
         app.state.game_reader = None
         app.state.phase4_readiness = "starting"
@@ -103,14 +105,29 @@ def application_lifespan(settings_loader=load_application_settings, client_facto
             from app.repositories.commentary_repository import MongoCommentaryRepository
             from app.services.commentary_service import CommentaryService
             from app.services.groq_commentary import DEFAULT_MODEL, GroqNarrator
+            from app.commentary_jobs.settings import load_commentary_job_settings
+            from app.commentary_jobs.capacity import MongoCommentaryCapacity, UnavailableCommentaryCapacity
+            from app.commentary_jobs.policy import MongoCommentaryPolicyStore
+            try:
+                jobs_settings = load_commentary_job_settings()
+                capacity = MongoCommentaryCapacity(client[settings.database_name]) if jobs_settings.execution_enabled else None
+                app.state.commentary_mode = "worker" if jobs_settings.discovery_enabled or jobs_settings.execution_enabled else "browser"
+                app.state.commentary_policies = MongoCommentaryPolicyStore(client[settings.database_name])
+            except ConfigurationError:
+                # A broken optional setting disables narration, not gameplay/auth.
+                capacity = UnavailableCommentaryCapacity()
+                logger.warning("commentary_jobs_configuration_invalid; narration disabled")
             app.state.commentary = CommentaryService(context.games, MongoCommentaryRepository(client[settings.database_name]),
-                GroqNarrator(os.environ.get("GROQ_API_KEY"), os.environ.get("GROQ_MODEL", DEFAULT_MODEL)))
+                GroqNarrator(os.environ.get("GROQ_API_KEY"), os.environ.get("GROQ_MODEL", DEFAULT_MODEL)),
+                capacity=capacity)
             if readiness != "ready":
                 logger.warning("phase4_readiness=%s; writes remain disabled", readiness)
             yield
         finally:
             app.state.phase4 = None
             app.state.commentary = None
+            app.state.commentary_policies = None
+            app.state.commentary_mode = "unavailable"
             app.state.mongo_client = None
             app.state.game_reader = None
             app.state.phase4_readiness = "stopped"

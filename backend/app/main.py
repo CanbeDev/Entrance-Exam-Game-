@@ -9,6 +9,7 @@ from app.api.countries import router as countries_router
 from app.api.auth import router as auth_router
 from app.api.games import router as games_router
 from app.api.commentary import router as commentary_router
+from app.commentary_jobs.consent_api import router as commentary_preference_router
 from app.api.dependencies import Phase4SecurityMiddleware, install_security_handlers
 from app.security.environment import load_application_settings
 from app.services.public_game_service import public_game
@@ -58,6 +59,7 @@ def create_app(*, settings_loader=load_application_settings, client_factory=crea
     application.include_router(auth_router)
     application.include_router(games_router)
     application.include_router(commentary_router)
+    application.include_router(commentary_preference_router)
 
     @application.get("/")
     def home():

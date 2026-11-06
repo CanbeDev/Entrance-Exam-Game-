@@ -49,7 +49,14 @@ async function filesBelow(directory) {
 test('application networking stays in src/api and tokens never use browser storage', async () => {
   for (const path of await filesBelow(new URL('../src/', import.meta.url))) {
     const text = await readFile(path, 'utf8');
-    assert.ok(!/\b(?:localStorage|sessionStorage|indexedDB)\b/.test(text), path.pathname);
+    // One fixed, non-sensitive sound-preference schema is intentionally persistent.
+    // Authentication/session/API modules and every other source retain the ban.
+    if (path.pathname.endsWith('/src/sound/preferences.ts')) {
+      assert.doesNotMatch(text, /\b(?:sessionStorage|indexedDB)\b/);
+      assert.equal((text.match(/localStorage\./g) ?? []).length, 2);
+      assert.match(text, /localStorage\.setItem\(preferenceKey, JSON\.stringify\(\{ enabled: value\.enabled, volume: volumeBound\(value\.volume\) \}\)\)/);
+      assert.doesNotMatch(text, /\b(?:token|csrf|password|credential|session)\b/i);
+    } else assert.ok(!/\b(?:localStorage|sessionStorage|indexedDB)\b/.test(text), path.pathname);
     if (!path.pathname.includes('/src/api/')) {
       assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|axios)\b/.test(text), path.pathname);
     }

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { ApiError, GameApi } from '../src/api/index.ts';
 import { HttpClient } from '../src/api/http.ts';
 import { GameController } from '../src/game/controller.ts';
+import { SoundLedger } from '../src/sound/events.ts';
+import { NewBattleCommentary } from '../src/api/live-commentary.ts';
 import { createMockApi, fixtureUser, fixturePassword } from './mock-api.mjs';
 
 const id = '000000000000000000000001';
@@ -15,8 +17,153 @@ const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(b
 const failure = (status, headers) => json({ detail: { code: 'persistence_unavailable' } }, status, headers);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check) {
-  const deadline = Date.now() + 2500;
+  const deadline = Date.now() + 12_000;
   while (!check()) { assert.ok(Date.now() < deadline, 'Isolated confirmation fixture did not settle'); await sleep(2); }
+}
+
+test('one Fast-forward click survives slow success and a late confirmed timeout through every NPC to the human turn', async (t) => {
+  const f = await setup(t);
+  const sounds = new SoundLedger(), cues = [], generated = [];
+  sounds.baseline(f.state());
+  const narration = new NewBattleCommentary(async (_id, revision) => {
+    generated.push(revision);
+    return { action_id: f.mock.histories.get(id).find(e => e.revision === revision).action_id };
+  }, () => {}, (_id, after) => f.api.events(id, { after_revision: after, limit: 100 }), 7,
+  () => !f.state().pending && !f.state().busy);
+  narration.contextChanged(id, f.state().session.user.id, true);
+  const unsubscribe = f.controller.subscribe(() => {
+    cues.push(...sounds.observe(f.state())); narration.observe(f.state().game.revision);
+  });
+  t.after(() => { unsubscribe(); narration.dispose(); });
+  f.afterNext('POST', npc, async response => { await sleep(80); return response; });
+  let active = 0, maximum = 0;
+  const submit = f.api.npcStep.bind(f.api);
+  f.api.npcStep = async (...args) => {
+    maximum = Math.max(maximum, ++active);
+    try { return await submit(...args); } finally { active--; }
+  };
+  await f.controller.fastForward(); // The only Fast-forward click in this test.
+  const late = f.hold('POST', npc, true);
+  await until(() => late.started && !f.state().busy && !!f.state().pending);
+  assert.equal(f.state().fastForward, true);
+  assert.equal(f.posts().length, 2);
+  const saved = f.state().pending;
+  late.release(); await until(() => f.mock.games.get(id).revision === 9);
+  f.mock.histories.get(id).at(-1).events = [{ type: 'dice_exchange', actor_id: 'npc-2', round: 1,
+    turn_sequence: 2, source_id: 'france', target_id: 'south-africa',
+    attacker_dice: [6, 2], defender_dice: [1, 5], attacker_losses: 1, defender_losses: 1 }];
+  f.afterNext('GET', events, () => failure(503));
+  await f.controller.poll(); // One transient read failure must not discard intent.
+  assert.equal(f.state().pending, saved);
+  assert.equal(f.state().fastForward, true);
+  assert.equal(f.posts().length, 2);
+  await f.controller.poll(); // The existing App poll, not another player action.
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().fastForward, true);
+  await until(() => f.state().game.current_turn === 0 && !f.state().fastForward);
+  assert.equal(maximum, 1);
+  assert.equal(f.state().game.revision, 16);
+  assert.deepEqual(f.posts().map(r => r.body.expected_revision), [7, 8, 9, 10, 11, 12, 13, 14, 15]);
+  assert.equal(f.state().npcAttempts, 9);
+  assert.equal(f.mock.histories.get(id).length, 9);
+  assert.equal(new Set(f.state().events.map(e => e.action_id)).size, 9);
+  assert.ok(f.state().events.every(e => e.npc_decision.explanation));
+  assert.equal(saved.operation.command.expected_revision, 8);
+  assert.equal(f.state().error, null);
+  assert.equal(cues.length, 9);
+  assert.equal(cues.filter(c => c.event === 'dice').length, 1);
+  assert.deepEqual(generated, [9]);
+  await f.controller.poll();
+  assert.equal(cues.length, 9); assert.deepEqual(generated, [9]);
+});
+
+test('immediate exact confirmation after a lost response continues the same run and stops at game completion', async (t) => {
+  const f = await setup(t);
+  f.disconnect();
+  await f.controller.fastForward();
+  assert.equal(f.state().fastForward, true);
+  assert.equal(f.state().pending, null);
+  f.afterNext('POST', npc, () => {
+    Object.assign(f.mock.games.get(id), { status: 'completed', phase: 'finished', winner: 'npc-2' });
+    throw new TypeError('Offline lost final reply');
+  });
+  await until(() => f.state().game.status === 'completed' && !f.state().fastForward);
+  assert.deepEqual(f.posts().map(r => r.body.expected_revision), [7, 8]);
+  assert.equal(f.mock.histories.get(id).length, 2);
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().error, null);
+  await sleep(700);
+  assert.equal(f.posts().length, 2);
+});
+
+test('Pause during delayed confirmation prevents continuation; explicit Resume uses the next revision once', async (t) => {
+  const f = await setup(t);
+  f.controller.configureNpcBudget(2);
+  const late = f.hold('POST', npc, true);
+  await f.controller.fastForward();
+  const saved = f.state().pending;
+  late.release(); await until(() => f.mock.games.get(id).revision === 8);
+  const gate = f.hold('GET', events);
+  const checking = f.controller.poll();
+  await until(() => gate.started);
+  assert.equal(f.state().fastForward, true);
+  assert.equal(f.state().busy, false);
+  f.controller.pause();
+  assert.equal(f.state().pending, saved);
+  gate.release(); await checking;
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().fastForward, false);
+  await sleep(700);
+  assert.equal(f.posts().length, 1);
+  await f.controller.fastForward();
+  assert.deepEqual(f.posts().map(r => r.body.expected_revision), [7, 8]);
+  assert.equal(f.state().game.revision, 9);
+  assert.equal(f.state().fastForward, false);
+});
+
+test('unresolved Fast-forward exhausts only public checks and later manual confirmation never restores old intent', async (t) => {
+  const f = await setup(t);
+  const late = f.hold('POST', npc, true);
+  await f.controller.fastForward();
+  const saved = f.state().pending;
+  assert.equal(f.state().fastForward, true);
+  for (let i = 0; i < 3; i++) await f.controller.poll();
+  assert.equal(f.state().fastForward, false);
+  assert.equal(f.state().pending, saved);
+  assert.match(f.state().error, /timed out/);
+  const count = f.requests.length;
+  await f.controller.poll();
+  assert.equal(f.requests.length, count);
+  late.release(); await until(() => f.mock.games.get(id).revision === 8);
+  await f.controller.checkPendingNpc();
+  assert.equal(f.state().pending, null);
+  await sleep(700);
+  assert.equal(f.posts().length, 1);
+  assert.equal(f.state().fastForward, false);
+});
+
+for (const intentLoss of ['refresh', 'navigation', 'session', 'dispose']) {
+  test(`${intentLoss} while awaiting confirmation cannot continue the old Fast-forward session`, async (t) => {
+    const f = await setup(t);
+    const late = f.hold('POST', npc, true);
+    await f.controller.fastForward();
+    const saved = f.state().pending;
+    if (intentLoss === 'refresh') await f.controller.refresh();
+    if (intentLoss === 'navigation') await f.controller.openGame('000000000000000000000002');
+    if (intentLoss === 'session') {
+      late.release(); await until(() => f.mock.games.get(id).revision === 8);
+      await f.api.logout(); // Synthetic session change, never a production request.
+    }
+    if (intentLoss === 'dispose') f.controller.dispose();
+    late.release(); await until(() => f.mock.games.get(id).revision === 8);
+    await f.controller.poll();
+    await sleep(700);
+    assert.equal(f.posts().length, 1);
+    assert.equal(f.state().fastForward, false);
+    assert.equal(f.state().gameId, saved.operation.gameId);
+    if (intentLoss === 'dispose') assert.equal(f.state().pending, saved);
+    else assert.equal(f.state().pending, null);
+  });
 }
 
 async function setup(t, { revision = 7, turn = 1, history = [] } = {}) {
@@ -82,7 +229,7 @@ test('an NPC response within deadline follows the normal success path without ta
   assert.ok(f.requests.every((request) => !request.query.includes('limit=1&') && !request.query.endsWith('limit=1')));
 });
 
-test('a committed POST timeout is confirmed anonymously, without another POST or automatic fast-forward continuation', async (t) => {
+test('a committed POST timeout is confirmed anonymously and the configured one-POST cap stops continuation', async (t) => {
   const f = await setup(t);
   f.controller.configureNpcBudget(1);
   f.afterNext('POST', npc, (_response, init) => new Promise((_resolve, reject) => {
@@ -98,7 +245,7 @@ test('a committed POST timeout is confirmed anonymously, without another POST or
   assert.equal(f.state().pending, null);
   assert.equal(f.state().fastForward, false);
   assert.equal(f.state().error, null);
-  assert.match(f.state().notice, /move 8.*confirmed committed.*Original response: timeout/);
+  assert.match(f.state().notice, /acceptance limit reached/);
   const checks = f.requests.filter((request) => request.credentials === 'omit');
   assert.deepEqual(checks.map((request) => [request.method, request.path]), [['GET', events], ['GET', `/games/${id}`]]);
   assert.ok(checks.every((request) => !request.csrfPresent));
@@ -125,7 +272,8 @@ test('a 200 body transport failure is network uncertainty with safe phase/status
   assert.equal(error.diagnostics.phase, 'body');
   assert.ok(Object.isFrozen(error.diagnostics));
   assert.ok(!JSON.stringify(error).includes('NEVER_SURFACE'));
-  assert.match(f.state().notice, /Original response: network.*reading the response body.*200/);
+  assert.match(f.state().notice, /NPC move 8 confirmed/);
+  assert.doesNotMatch(f.state().notice, /Original response|HTTP|network/);
   assert.equal(f.state().pending, null);
   assert.equal(f.state().game.revision, 8);
 });
@@ -136,8 +284,9 @@ test('invalid JSON remains malformed and a matching receipt can independently co
   await f.controller.stepNpc();
   assert.equal(f.errors[0].kind, 'malformed');
   assert.equal(f.errors[0].diagnostics.phase, 'body');
+  assert.equal(f.errors[0].kind, 'malformed');
   assert.equal(f.state().pending, null);
-  assert.match(f.state().notice, /Original response: malformed/);
+  assert.match(f.state().notice, /NPC move 8 confirmed/);
 });
 
 test('a server-side commit followed by 503 is reconciled without hiding the original response failure', async (t) => {
@@ -146,12 +295,14 @@ test('a server-side commit followed by 503 is reconciled without hiding the orig
   await f.controller.stepNpc();
   assert.equal(f.state().pending, null);
   assert.equal(f.state().game.revision, 8);
-  assert.match(f.state().notice, /confirmed committed.*Original response: unavailable/);
+  assert.equal(f.errors[0].kind, 'unavailable');
+  assert.match(f.state().notice, /NPC move 8 confirmed/);
   assert.equal(f.posts().length, 1);
 });
 
 test('a committed transfer with a lost response restores soldiers, ownership and the original explanation', async (t) => {
   const f = await setup(t);
+  f.controller.configureNpcBudget(1);
   const board = f.mock.games.get(id);
   Object.assign(board, { phase: 'post_attack' });
   Object.assign(board.countries[1], { soldiers: 3 });
@@ -233,7 +384,9 @@ for (const [name, tamper] of mismatches) {
     assert.ok(!f.requests.some((request) => request.path === `/games/${id}`));
     const count = f.requests.length;
     await f.controller.poll(); await f.controller.stepNpc(); await f.controller.fastForward();
-    assert.equal(f.requests.length, count);
+    assert.deepEqual(f.requests.slice(count).map(r => [r.method, r.path, r.credentials]),
+      [['GET', events, 'omit']]);
+    assert.equal(f.posts().length, 1);
     assert.equal(f.state().pending, pending);
   });
 }
@@ -338,6 +491,197 @@ test('a backend worker may finish after client cancellation; explicit read-only 
   assert.equal(f.mock.calls.filter((call) => call.path === npc).length, 1);
 });
 
+test('existing polling confirms a late NPC commit after the initial timeout check missed it', async (t) => {
+  const f = await setup(t);
+  f.controller.configureNpcBudget(2);
+  const work = f.hold('POST', npc, true);
+  await f.controller.fastForward();
+  const saved = f.state().pending;
+  assert.equal(saved.kind, 'npc');
+  assert.equal(f.state().game.revision, 7);
+  assert.equal(f.state().fastForward, true);
+  f.controller.pause(); // Explicit Pause revokes continuation, even after later confirmation.
+  work.release();
+  await until(() => f.mock.games.get(id).revision === 8);
+  assert.equal(f.state().pending, saved);
+  const count = f.requests.length;
+  await f.controller.poll();
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().game.revision, 8);
+  assert.equal(f.state().fastForward, false);
+  assert.equal(f.state().npcAttempts, 1);
+  assert.equal(f.posts().length, 1);
+  assert.deepEqual(f.requests.slice(count).map(r => [r.method, r.path, r.credentials]),
+    [['GET', events, 'omit'], ['GET', `/games/${id}`, 'omit']]);
+  // A human explicitly resumes only after exact confirmation. The old move is
+  // not replayed and the next submission uses the successor revision once.
+  await f.controller.fastForward();
+  assert.deepEqual(f.posts().map(r => r.body.expected_revision), [7, 8]);
+  assert.equal(f.state().game.revision, 9);
+  assert.equal(f.state().fastForward, false); // Two-POST acceptance cap.
+  assert.equal(f.mock.histories.get(id).length, 2);
+});
+
+test('slow successful NPC response inside the existing deadline commits once without recovery', async (t) => {
+  const f = await setup(t);
+  f.afterNext('POST', npc, async response => { await sleep(80); return response; });
+  await f.controller.stepNpc();
+  assert.equal(f.errors.length, 0);
+  assert.equal(f.state().game.revision, 8);
+  assert.equal(f.state().pending, null);
+  assert.equal(f.posts().length, 1);
+  assert.ok(!f.requests.some(r => r.credentials === 'omit'));
+});
+
+test('uncommitted NPC stays locked after three automatic read attempts; manual confirmation remains available', async (t) => {
+  const f = await setup(t);
+  const work = f.hold('POST', npc, true);
+  await f.controller.stepNpc();
+  const saved = f.state().pending, identity = JSON.stringify(saved);
+  const count = f.requests.length;
+  for (let i = 0; i < 7; i++) await f.controller.poll();
+  assert.deepEqual(f.requests.slice(count).map(r => [r.method, r.path, r.credentials]),
+    Array.from({ length: 3 }, () => ['GET', events, 'omit']));
+  assert.equal(f.state().pending, saved);
+  assert.equal(JSON.stringify(saved), identity);
+  assert.equal(f.state().game.revision, 7);
+  assert.equal(f.state().npcAttempts, 1);
+  assert.equal(f.posts().length, 1);
+  work.release(); await until(() => f.mock.games.get(id).revision === 8);
+  await f.controller.poll();
+  assert.equal(f.state().pending, saved); // Read allowance is exhausted, not silently reset.
+  await f.controller.checkPendingNpc();
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().game.revision, 8);
+  assert.equal(f.posts().length, 1);
+});
+
+test('background confirmation never acquires foreground busy and blocks overlapping recovery/mutation work', async (t) => {
+  const f = await setup(t);
+  f.controller.configureNpcBudget(1);
+  f.disconnect(); f.afterNext('GET', events, () => failure(503));
+  await f.controller.stepNpc();
+  const gate = f.hold('GET', events);
+  const polling = f.controller.poll();
+  await until(() => gate.started);
+  assert.equal(f.state().busy, false);
+  assert.equal(f.state().refreshing, true);
+  assert.equal(f.state().confirmingPending, true);
+  const count = f.requests.length;
+  await Promise.all([f.controller.poll(), f.controller.checkPendingNpc(), f.controller.retryPending(),
+    f.controller.stepNpc(), f.controller.fastForward(), f.controller.authenticate(credentials, false)]);
+  f.controller.pause();
+  assert.equal(f.requests.length, count);
+  gate.release(); await polling;
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().refreshing, false);
+  assert.equal(f.state().fastForward, false);
+  await sleep(700);
+  assert.equal(f.posts().length, 1);
+});
+
+test('automatic confirmation respects Retry-After and preserves the original pending identity', async (t) => {
+  const f = await setup(t);
+  f.disconnect(); f.afterNext('GET', events, () => failure(503));
+  await f.controller.stepNpc();
+  const saved = f.state().pending;
+  f.afterNext('GET', events, () => failure(429, { 'Retry-After': '60' }));
+  await f.controller.poll();
+  assert.ok(f.state().retryAt > Date.now());
+  const count = f.requests.length;
+  await f.controller.poll(); await f.controller.checkPendingNpc(); await f.controller.retryPending();
+  assert.equal(f.requests.length, count);
+  assert.equal(f.state().pending, saved);
+  assert.equal(f.posts().length, 1);
+});
+
+test('an identical saved retry cannot replenish automatic confirmation reads or bypass the NPC POST cap', async (t) => {
+  const f = await setup(t);
+  f.controller.configureNpcBudget(2);
+  f.disconnect();
+  f.afterNext('GET', events, () => failure(503));
+  await f.controller.stepNpc();
+  const saved = f.state().pending;
+  for (let i = 0; i < 3; i++) {
+    f.afterNext('GET', events, () => failure(503));
+    await f.controller.poll();
+  }
+  f.disconnect(); f.afterNext('GET', events, () => failure(503));
+  await f.controller.retryPending();
+  assert.equal(f.state().pending, saved);
+  assert.deepEqual(f.posts()[1].body, f.posts()[0].body);
+  assert.equal(f.state().npcAttempts, 2);
+  const count = f.requests.length;
+  await f.controller.poll(); await f.controller.retryPending(); await f.controller.fastForward();
+  assert.equal(f.requests.length, count);
+  assert.equal(f.posts().length, 2);
+  assert.equal(f.mock.histories.get(id).length, 1);
+  await f.controller.checkPendingNpc();
+  assert.equal(f.state().pending, null);
+});
+
+test('automatic public confirmation works after session expiry without reauthentication or a POST', async (t) => {
+  const f = await setup(t);
+  f.disconnect(); f.afterNext('GET', events, () => failure(503));
+  await f.controller.stepNpc();
+  f.afterNext('GET', '/auth/csrf', () => failure(401));
+  await f.controller.retryPending();
+  assert.equal(f.state().session, null);
+  const count = f.requests.length;
+  await f.controller.poll();
+  assert.equal(f.state().pending, null);
+  assert.equal(f.state().owner, false);
+  assert.ok(f.requests.slice(count).every(r => r.method === 'GET' && r.credentials === 'omit' && !r.csrfPresent));
+  assert.equal(f.posts().length, 1);
+});
+
+test('disposing during automatic confirmation prevents late state application and follow-up reads', async (t) => {
+  const f = await setup(t);
+  f.disconnect(); f.afterNext('GET', events, () => failure(503));
+  await f.controller.stepNpc();
+  const gate = f.hold('GET', events), count = f.requests.length;
+  const polling = f.controller.poll();
+  await until(() => gate.started);
+  f.controller.dispose(); const disposed = f.state();
+  gate.release(); await polling;
+  assert.equal(f.state(), disposed);
+  assert.deepEqual(f.requests.slice(count).map(r => r.path), [events]);
+  assert.equal(f.posts().length, 1);
+});
+
+test('recovering a late dice receipt produces one sound cue and one mocked narration, never duplicates on refresh', async (t) => {
+  const f = await setup(t);
+  const ledger = new SoundLedger(), cues = [], generated = [];
+  ledger.baseline(f.state());
+  const narration = new NewBattleCommentary(async (_id, revision) => {
+    generated.push(revision);
+    return { action_id: f.mock.histories.get(id).find(e => e.revision === revision).action_id };
+  }, () => {}, (_id, after) => f.api.events(id, { after_revision: after, limit: 100 }), 7,
+  () => !f.state().pending);
+  narration.contextChanged(id, f.state().session.user.id, true);
+  const unsubscribe = f.controller.subscribe(() => {
+    cues.push(...ledger.observe(f.state()));
+    narration.observe(f.state().game.revision);
+  });
+  t.after(() => { unsubscribe(); narration.dispose(); });
+  const work = f.hold('POST', npc, true);
+  await f.controller.stepNpc();
+  assert.deepEqual(cues, []); assert.deepEqual(generated, []);
+  work.release(); await until(() => f.mock.games.get(id).revision === 8);
+  const entry = f.mock.histories.get(id).at(-1);
+  entry.events = [{ type: 'dice_exchange', actor_id: 'npc-1', round: 1, turn_sequence: 1,
+    source_id: 'vatican-city', target_id: 'france', attacker_dice: [6, 2], defender_dice: [1, 5],
+    attacker_losses: 1, defender_losses: 1 }];
+  await f.controller.poll();
+  await until(() => generated.length === 1);
+  assert.deepEqual(cues.map(c => c.event), ['dice']);
+  assert.deepEqual(f.state().events[0].events[0].attacker_dice, [6, 2]);
+  await f.controller.poll(); await f.controller.refresh();
+  assert.deepEqual(cues.map(c => c.event), ['dice']);
+  assert.deepEqual(generated, [8]);
+  assert.equal(f.posts().length, 1);
+});
+
 test('confirmation holds the mutation lock and Pause cannot schedule another NPC action', async (t) => {
   const f = await setup(t);
   f.disconnect(); const gate = f.hold('GET', events);
@@ -346,7 +690,7 @@ test('confirmation holds the mutation lock and Pause cannot schedule another NPC
   const saved = f.state().pending;
   assert.equal(f.state().confirmingPending, true);
   assert.equal(f.state().busy, true);
-  assert.equal(f.state().fastForward, false);
+  assert.equal(f.state().fastForward, true);
   const count = f.requests.length;
   await f.controller.stepNpc(); await f.controller.fastForward(); await f.controller.retryPending(); await f.controller.checkPendingNpc();
   f.controller.pause();
@@ -456,6 +800,7 @@ test('disposing during receipt confirmation prevents the next board read and all
 
 test('a stale background board response cannot overwrite a recovered NPC state or restart fast-forward', async (t) => {
   const f = await setup(t);
+  f.controller.configureNpcBudget(1);
   const read = f.hold('GET', `/games/${id}`);
   const polling = f.controller.poll();
   await until(() => read.started);
@@ -489,7 +834,7 @@ test('a received old NPC receipt followed by a failed state refresh is reconcile
   await f.controller.checkPendingNpc();
   assert.equal(f.state().pending, null);
   assert.equal(f.state().game.revision, 9);
-  assert.match(f.state().notice, /confirmed committed/);
+  assert.match(f.state().notice, /NPC move 8 confirmed/);
   assert.equal(f.posts().length, 1);
   assert.equal(f.state().events[0].revision, 8);
 });

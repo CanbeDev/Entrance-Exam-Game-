@@ -1,34 +1,49 @@
-import { useState } from 'react';
-import type { SubmitEvent } from 'react';
+import { useId, useImperativeHandle, useState } from 'react';
+import type { Ref, SubmitEvent } from 'react';
 import type { Credentials } from '../api/index.ts';
 
-export function AuthForm({ disabled, onSubmit, recoveryUsername }: {
+export type AuthFormDisplay = { showLogin: () => void; showRegistration: () => void };
+
+export function AuthForm({ disabled, onSubmit, recoveryUsername, initialRegister = false, registrationInvitation = false, displayRef }: {
   disabled: boolean; onSubmit: (credentials: Credentials, register: boolean) => void;
   recoveryUsername?: string;
+  initialRegister?: boolean;
+  registrationInvitation?: boolean;
+  displayRef?: Ref<AuthFormDisplay>;
 }) {
-  const [registerMode, setRegister] = useState(false);
+  const [registerMode, setRegister] = useState(initialRegister);
+  const hint = useId();
+  const [validation, setValidation] = useState('');
   const register = !recoveryUsername && registerMode;
+  useImperativeHandle(displayRef, () => ({
+    showLogin: () => { if (!disabled && !recoveryUsername) setRegister(false); },
+    showRegistration: () => { if (!disabled && !recoveryUsername) setRegister(true); },
+  }), [disabled, recoveryUsername]);
   function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (disabled) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    const credentials = { username: String(data.get('username')), password: String(data.get('password')) };
+    const credentials = { username: recoveryUsername ?? String(data.get('username')), password: String(data.get('password')) };
     form.reset();
     onSubmit(credentials, register);
   }
-  return <section aria-labelledby="account-title">
+  return <section className="geo-auth" aria-labelledby="account-title">
+    <span className="geo-label">{recoveryUsername ? 'Account recovery' : register ? 'Your first campaign awaits' : 'Welcome to Geopolitics'}</span>
     <h2 id="account-title">{recoveryUsername ? 'Log in to recover the saved request' : register ? 'Create an account' : 'Log in'}</h2>
-    <form onSubmit={submit}>
+    <form onSubmit={submit} onInput={() => setValidation('')} onInvalidCapture={() => setValidation('Check the username and password requirements before continuing.')}>
       <fieldset disabled={disabled}>
-        <legend>{register ? 'Register and log in' : 'Account details'}</legend>
+        <legend className="geo-visually-hidden">{register ? 'Register and log in' : 'Account details'}</legend>
         <label>Username <input name="username" required minLength={3} maxLength={32} pattern="[a-zA-Z0-9_]+" autoComplete="username"
-          defaultValue={recoveryUsername} readOnly={!!recoveryUsername} /></label>
+          defaultValue={recoveryUsername} readOnly={!!recoveryUsername} aria-describedby={register ? hint : undefined} /></label>
         <label>Password <input name="password" type="password" required minLength={register ? 15 : 1} maxLength={128}
-          autoComplete={register ? 'new-password' : 'current-password'} /></label>
-        {register && <p>Use 3–32 letters, digits or underscores for your username and at least 15 characters for your password.</p>}
-        <button type="submit">{register ? 'Register and log in' : 'Log in'}</button>
-        {!recoveryUsername && <button type="button" onClick={() => setRegister(!register)}>{register ? 'Use an existing account' : 'Create an account'}</button>}
+          aria-describedby={register ? hint : undefined} autoComplete={register ? 'new-password' : 'current-password'} /></label>
+        {register && <p id={hint} className="geo-help">Use 3–32 letters, digits or underscores for your username and 15–128 characters for your password.</p>}
+        <button className="geo-screen-primary" type="submit">{register ? 'Register and log in' : 'Log in'}</button>
+        {registrationInvitation && !register && !recoveryUsername && <p className="geo-auth__invitation">New to Geopolitics?</p>}
+        {!recoveryUsername && <button className="geo-screen-link" type="button" onClick={() => { if (!disabled) setRegister(!register); }}>{register ? 'Use an existing account' : 'Create an account'}</button>}
       </fieldset>
+      {validation && <p role="alert">{validation}</p>}
     </form>
   </section>;
 }

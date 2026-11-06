@@ -8,6 +8,8 @@
     "dev": "vite --host 127.0.0.1",
     "generate:api": "node scripts/generate-contracts.mjs",
     "check:contracts": "node scripts/generate-contracts.mjs --check",
+    "check:sounds": "node scripts/verify-sound-assets.mjs",
+    "test:sound-sources": "node --test tests/private/*.test.mjs && node scripts/prepare-sound-assets.mjs --check",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build"

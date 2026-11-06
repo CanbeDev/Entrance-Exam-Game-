@@ -25,6 +25,28 @@ def test_stops_at_human_without_creating_actions(catalog):
     assert batch.reason == "human_turn" and batch.committed == () and store.writes == 0
 
 
+def test_resumed_npc_attack_start_advances_to_exactly_one_saved_dice_exchange(catalog):
+    dice = FixedDice([6, 1])
+    store, _, controller = controller_for(npc_state(catalog), dice)
+    attack = controller.prepare(store.game_id)
+    assert attack.command.action.type == "start_attack"
+    first = controller.submit(attack)
+    assert first.state.phase == "attacking" and dice.calls == 0
+    # A lost response followed by an identical submission replays, not a new move.
+    assert controller.submit(attack) == first and store.writes == 1
+    roll = controller.prepare(store.game_id)
+    assert roll.command.expected_revision == first.state.revision
+    assert roll.command.action.type == "roll"
+    second = controller.submit(roll)
+    assert second.state.revision == first.state.revision + 1
+    exchange = next(event for event in second.events if event.type == "dice_exchange")
+    assert exchange.attacker_dice == (6,) and exchange.defender_dice == (1,)
+    assert exchange.attacker_losses == 0 and exchange.defender_losses == 1
+    assert second.npc_decision.explanation and second.state.phase == "post_attack"
+    assert controller.submit(roll) == second
+    assert dice.calls == 2 and store.writes == len(store.receipts) == 2
+
+
 def test_stops_when_already_completed(catalog):
     state = npc_state(catalog)
     state = revise(state, country_changes={i: {"owner_id": "npc-1"} for i in range(10)},

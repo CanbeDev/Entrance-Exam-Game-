@@ -47,7 +47,7 @@ def test_country_listing_and_no_creation_route(api):
     assert client.post("/games", json={"game_name": "Blocked", "starting_country_id": "india"}).status_code == 503
     approved_posts = {"/auth/register", "/auth/login", "/auth/logout", "/games",
                       "/games/{game_id}/actions", "/games/{game_id}/npc-steps",
-                      "/games/{game_id}/commentary/{revision}"}
+                      "/games/{game_id}/commentary/{revision}", "/games/{game_id}/commentary-preference"}
     assert {path for path, operations in module.app.openapi()["paths"].items()
             if "post" in operations} == approved_posts
 

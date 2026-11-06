@@ -1,0 +1,86 @@
+{
+  "andorra": {
+    "coordinates": [
+      1.560756,
+      42.541327
+    ],
+    "referenceCode": "AND",
+    "referenceName": "Andorra",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 0
+  },
+  "holy-see": {
+    "coordinates": [
+      12.453364,
+      41.903327
+    ],
+    "referenceCode": "VAT",
+    "referenceName": "Vatican",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 0
+  },
+  "kiribati": {
+    "coordinates": [
+      -171.662954,
+      -2.837575
+    ],
+    "referenceCode": "KIR",
+    "referenceName": "Kiribati",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 3
+  },
+  "liechtenstein": {
+    "coordinates": [
+      9.5409,
+      47.138206
+    ],
+    "referenceCode": "LIE",
+    "referenceName": "Liechtenstein",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 0
+  },
+  "monaco": {
+    "coordinates": [
+      7.398449,
+      43.746141
+    ],
+    "referenceCode": "MCO",
+    "referenceName": "Monaco",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 0
+  },
+  "san-marino": {
+    "coordinates": [
+      12.442237,
+      43.936454
+    ],
+    "referenceCode": "SMR",
+    "referenceName": "San Marino",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 0
+  },
+  "singapore": {
+    "coordinates": [
+      103.813465,
+      1.358924
+    ],
+    "referenceCode": "SGP",
+    "referenceName": "Singapore",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_label_points.geojson",
+    "sourceSha256": "2f26ad9dd03c543d1aec3cd593c288367fd27a0ccd68db8a31182a95ad361196",
+    "method": "Natural Earth 1:10m representative label point; Robinson projected after calibration against the identical Simplemaps SVG. A country location, not a fabricated shape or capital.",
+    "scalerank": 3
+  }
+}

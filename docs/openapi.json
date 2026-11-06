@@ -263,6 +263,74 @@
         "title": "BattleFacts",
         "type": "object"
       },
+      "CommentaryPreference": {
+        "additionalProperties": false,
+        "properties": {
+          "activation_revision": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activation Revision"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "game_id": {
+            "title": "Game Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "browser",
+              "worker",
+              "unavailable"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "game_id",
+          "mode",
+          "enabled",
+          "version",
+          "activation_revision"
+        ],
+        "title": "CommentaryPreference",
+        "type": "object"
+      },
+      "CommentaryPreferenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "expected_version"
+        ],
+        "title": "CommentaryPreferenceRequest",
+        "type": "object"
+      },
       "CommentaryRequest": {
         "additionalProperties": false,
         "description": "Identity comes exclusively from the path and persisted receipt.",
@@ -2044,6 +2112,98 @@
         "summary": "Human Action",
         "tags": [
           "game sessions"
+        ]
+      }
+    },
+    "/games/{game_id}/commentary-preference": {
+      "get": {
+        "operationId": "read_preference_games__game_id__commentary_preference_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentaryPreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Preference",
+        "tags": [
+          "Battle commentary preferences"
+        ]
+      },
+      "post": {
+        "operationId": "save_preference_games__game_id__commentary_preference_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "game_id",
+            "required": true,
+            "schema": {
+              "title": "Game Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentaryPreferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentaryPreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Preference",
+        "tags": [
+          "Battle commentary preferences"
         ]
       }
     },

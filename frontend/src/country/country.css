@@ -1,0 +1,23 @@
+.geo-country-inspector { margin-block: 16px; max-inline-size: 100%; }
+.geo-country-inspector > label { display: block; font-size: 13px; font-weight: 600; margin-block: 12px 4px; }
+.geo-country-inspector > input, .geo-country-inspector > select { min-block-size: 44px; max-inline-size: 100%; inline-size: min(100%, 24rem); display: block; padding: 8px; border: 1px solid var(--geo-outline); border-radius: 8px; background: var(--geo-paper); color: var(--geo-ink); font: inherit; }
+.geo-country-card { background: var(--geo-paper); border: 1px solid var(--geo-copper); border-radius: 8px; padding: 12px; max-inline-size: 320px; margin-block-start: 12px; color: var(--geo-ink); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.geo-country-card > header { display: flex; align-items: center; gap: 8px; border: 0; padding: 0; margin: 0 0 8px; }
+.geo-country-card h4 { font: 600 20px/1.2 var(--geo-font-heading); margin: 0; flex: 1; }
+.geo-country-card header img { inline-size: 32px; block-size: 24px; object-fit: contain; }
+.geo-country-card header button { min-inline-size: 44px; min-block-size: 44px; padding: 0; font-size: 24px; background: transparent; color: var(--geo-ink); border: 0; }
+.geo-country-card dl { display: grid; gap: 6px; margin: 0; }
+.geo-country-card dl > div { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.geo-country-card dt { font-weight: 600; }
+.geo-country-card dt span { display: inline-block; inline-size: 16px; }
+.geo-country-card dd { margin: 0; }
+.geo-country-card [data-target] { color: var(--geo-copper); }
+.geo-country-card p { margin-block: 6px; }
+.geo-country-card summary { cursor: pointer; min-block-size: 44px; padding-block: 10px; }
+.geo-country-card__sources { margin-block-start: 8px; font-size: 13px; }
+.geo-country-anchor { margin-inline-start: var(--geo-card-left, 0); max-inline-size: 320px; }
+.geo-country-inspector > button { min-block-size: 44px; margin-block-start: 8px; }
+.geo-atlas__svg path[data-inspectable] { cursor: pointer; }
+.geo-atlas__svg path[data-inspectable]:hover { stroke: var(--geo-forest); stroke-width: 1.5; }
+@media (max-width: 700px) { .geo-country-anchor { margin-inline-start: 0; max-inline-size: 100%; } }
+@media (max-width: 700px) { .geo-country-card { max-inline-size: 100%; inline-size: 100%; box-sizing: border-box; } }
